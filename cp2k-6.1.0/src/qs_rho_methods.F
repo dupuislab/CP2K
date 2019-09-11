@@ -220,6 +220,8 @@ CONTAINS
             END DO
             DEALLOCATE (rho_g)
          END IF
+         !WRITE(112,*) "I came here in qs_rho_methods() to allocate and create&
+         !              &rho_g, I don't assign any values yet"
          ALLOCATE (rho_g(nspins))
          CALL qs_rho_set(rho, rho_g=rho_g)
          DO i = 1, nspins
@@ -427,6 +429,10 @@ CONTAINS
          CALL qs_rho_get(rho_struct, rho_ao_kp=rho_ao_kp)
          DO ispin = 1, nspins
             rho_ao => rho_ao_kp(ispin, :)
+            !WRITE(112,*) "For both spins I am here to update the rho_g to rho_ao &
+            !              &  and i am doing this by calling calculate_rho_elec() &
+            !              & routine where I would take whatever rho_gspace gives me. &
+            !            &That routine is in the module qs_collocate_density"
             CALL calculate_rho_elec(matrix_p_kp=rho_ao, &
                                     rho=rho_r(ispin), &
                                     rho_gspace=rho_g(ispin), &
@@ -472,7 +478,7 @@ CONTAINS
 
       ! GAPW o GAPW_XC require the calculation of hard and soft local densities
       IF (gapw) THEN
-         CPASSERT(.NOT. PRESENT(task_list_external))
+         !CPASSERT(.NOT. PRESENT(task_list_external))
          CPASSERT(.NOT. PRESENT(pw_env_external))
          CALL qs_rho_get(rho_struct, rho_ao_kp=rho_ao_kp)
          IF (PRESENT(local_rho_set)) THEN

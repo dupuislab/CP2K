@@ -45,12 +45,12 @@ CONTAINS
 !> \param local_rho_set ...
 !> \param do_rho0 ...
 ! **************************************************************************************************
-   SUBROUTINE prepare_gapw_den(qs_env, local_rho_set, do_rho0)
+   SUBROUTINE prepare_gapw_den(qs_env, local_rho_set, do_rho0,calls)
 
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(local_rho_type), OPTIONAL, POINTER            :: local_rho_set
       LOGICAL, INTENT(IN), OPTIONAL                      :: do_rho0
-
+      INTEGER,OPTIONAL                                   :: calls
       CHARACTER(len=*), PARAMETER :: routineN = 'prepare_gapw_den', &
          routineP = moduleN//':'//routineN
 
@@ -71,7 +71,6 @@ CONTAINS
       TYPE(rho0_atom_type), DIMENSION(:), POINTER        :: rho0_atom_set
       TYPE(rho0_mpole_type), POINTER                     :: rho0_mpole
       TYPE(rho_atom_type), DIMENSION(:), POINTER         :: rho_atom_set
-
       CALL timeset(routineN, handle)
 
       NULLIFY (atomic_kind_set)
@@ -89,7 +88,7 @@ CONTAINS
 
       my_do_rho0 = .TRUE.
       IF (PRESENT(do_rho0)) my_do_rho0 = do_rho0
-
+      WRITE(140,*) "my_do_rho0", my_do_rho0
       output_unit = cp_logger_get_default_io_unit()
 
       CALL get_qs_env(qs_env=qs_env, dft_control=dft_control, &
@@ -117,26 +116,26 @@ CONTAINS
       ALLOCATE (rho1_h_tot(1:nspins), rho1_s_tot(1:nspins))
       rho1_h_tot = 0.0_dp
       rho1_s_tot = 0.0_dp
-
       DO ikind = 1, SIZE(atomic_kind_set)
          NULLIFY (grid_atom, harmonics)
          CALL get_atomic_kind(atomic_kind_set(ikind), atom_list=atom_list, natom=natom)
          CALL get_qs_kind(qs_kind_set(ikind), grid_atom=grid_atom, &
                           paw_atom=paw_atom, harmonics=harmonics)
-
-!     Calculate rho1_h and rho1_s on the radial grids centered on the atomic position
-         IF (paw_atom) &
+         !IF (paw_atom) WRITE(112,*) "Calculating rho1_h and rho1_s on radial grids for each atom"
+      !Calculate rho1_h and rho1_s on the radial grids centered on the atomic position
+         IF (paw_atom) THEN
+            IF (.NOT. calls==3)&
             CALL calculate_rho_atom(para_env, rho_atom_set, qs_kind_set(ikind), &
                                     atom_list, grid_atom, natom, nspins, rho1_h_tot, rho1_s_tot)
-
-!     Calculate rho0_h and rho0_s on the radial grids centered on the atomic position
+         END IF
+         IF (my_do_rho0) WRITE(112,*) "Calculating rho0_h and rho0_s on radial grids for each atom"
+      !Calculate rho0_h and rho0_s on the radial grids centered on the atomic position
+         !IF(my_do_rho0) WRITE(112,*) "Value of calls is:",calls
          IF (my_do_rho0) &
             CALL calculate_rho0_atom(gapw_control, rho_atom_set, rho0_atom_set, rho0_mpole, &
                                      atom_list, grid_atom, paw_atom, natom, ikind, qs_kind_set(ikind), &
-                                     harmonics, rho0_h_tot)
-
+                                     harmonics, rho0_h_tot,calls=calls)
       ENDDO
-
       CALL mp_sum(rho1_h_tot, para_env%group)
       CALL mp_sum(rho1_s_tot, para_env%group)
       DO ispin = 1, nspins
@@ -146,7 +145,7 @@ CONTAINS
 
       IF (my_do_rho0) THEN
          rho0_mpole%total_rho0_h = -rho0_h_tot
-!      Put the rho0_soft on the global grid
+      ! Put the rho0_soft on the global grid
          CALL put_rho0_on_grid(qs_env, rho0_mpole, tot_rs_int)
          IF (ABS(rho0_h_tot) .GE. 1.0E-5_dp) THEN
             IF (ABS(1.0_dp-ABS(tot_rs_int/rho0_h_tot)) .GT. 1.0E-3_dp) THEN
@@ -166,11 +165,13 @@ CONTAINS
       ELSE
          qs_charges%total_rho0_hard_lebedev = 0.0_dp
       END IF
-
+      !WRITE(116,*) "Inside prepare_gapw_den for nth time, rho0_s_rspace and rho0_h_lebedev&
+      !    &are",calls,qs_charges%total_rho0_soft_rspace,&
+      !    qs_charges%total_rho0_hard_lebedev
       DEALLOCATE (rho1_h_tot, rho1_s_tot)
-
+      !END IF
       CALL timestop(handle)
-
+      
    END SUBROUTINE prepare_gapw_den
 
 END MODULE qs_gapw_densities

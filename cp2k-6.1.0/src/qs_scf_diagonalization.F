@@ -293,7 +293,19 @@ CONTAINS
       CHARACTER(len=*), PARAMETER :: routineN = 'do_general_diag', &
          routineP = moduleN//':'//routineN
 
-      INTEGER                                            :: ispin, nspin
+      INTEGER                                            :: ispin, nspin,iw
+      TYPE(cp_logger_type), POINTER                      :: logger
+      logger => cp_get_default_logger()
+      iw = cp_print_key_unit_nr(logger,scf_section,"PRINT%PROGRAM_RUN_INFO", &
+                                   extension=".scfLog")
+      !IF(iw>0) WRITE(iw,FMT="(A)") &
+      !  "INSIDE QS_SCF_DIAGONALIZATION MODULE::&
+      !  &  do_general_diag()"
+
+      !IF(iw>0) WRITE(iw,FMT="(A)") &
+      ! "IN DO_GENERAL_DIAG()::CALLS to general_eigenproblem(), set_mo_occupation(), &
+      !   & calculate_density_matrix()"
+
 
       nspin = SIZE(matrix_ks)
 

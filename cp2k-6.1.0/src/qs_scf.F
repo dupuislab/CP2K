@@ -63,6 +63,7 @@ MODULE qs_scf
                                               cp_print_key_should_output,&
                                               cp_print_key_unit_nr,&
                                               cp_rm_iter_level
+   USE cp_dbcsr_output,                 ONLY: cp_dbcsr_write_sparse_matrix
    USE cp_para_types,                   ONLY: cp_para_env_type
    USE cp_result_methods,               ONLY: get_results,&
                                               test_for_result
@@ -82,7 +83,8 @@ MODULE qs_scf
         ot_precond_full_single_inverse, ot_precond_none, ot_precond_s_inverse, &
         outer_scf_hirshfeld_constraint, outer_scf_optimizer_broyden, outer_scf_optimizer_newton_ls
    USE input_section_types,             ONLY: section_vals_get_subs_vals,&
-                                              section_vals_type
+                                              section_vals_type,&
+                                              section_vals_val_get
    USE kinds,                           ONLY: default_path_length,&
                                               default_string_length,&
                                               dp
@@ -190,8 +192,8 @@ CONTAINS
 
       CHARACTER(len=*), PARAMETER :: routineN = 'scf', routineP = moduleN//':'//routineN
 
-      INTEGER                                            :: ihistory, max_scf_tmp
-      LOGICAL                                            :: converged, outer_scf_loop, should_stop
+      INTEGER                                            :: ispin, ihistory, max_scf_tmp, iw, after
+      LOGICAL                                            :: converged, outer_scf_loop, should_stop, omit_headers
       LOGICAL, SAVE                                      :: first_step_flag = .TRUE.
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: gradient_history, variable_history
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -199,12 +201,23 @@ CONTAINS
       TYPE(qs_scf_env_type), POINTER                     :: scf_env
       TYPE(scf_control_type), POINTER                    :: scf_control
       TYPE(section_vals_type), POINTER                   :: dft_section, input, scf_section
+      TYPE(dbcsr_p_type), DIMENSION(:, :), POINTER       :: ks_matrix
+      TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: rho_ao
+      TYPE(qs_rho_type), POINTER                         :: rho
+      TYPE(cp_para_env_type), POINTER                    :: para_env
 
       NULLIFY (scf_env)
       logger => cp_get_default_logger()
       CPASSERT(ASSOCIATED(qs_env))
       CALL get_qs_env(qs_env, scf_env=scf_env, input=input, &
                       dft_control=dft_control, scf_control=scf_control)
+      iw = cp_print_key_unit_nr(logger,qs_env%input,"DFT%SCF%PRINT%ITERATION_INFO", &
+                                   extension=".scfLog")
+
+      !IF(iw>0) WRITE(iw,FMT="(A)") "***INSIDE QS_SCF MODULE :: scf()"
+      CALL section_vals_val_get(qs_env%input,"DFT%PRINT%AO_MATRICES%OMIT_HEADERS",l_val=omit_headers)
+      CALL section_vals_val_get(qs_env%input,"DFT%PRINT%AO_MATRICES%NDIGITS",i_val=after)
+
       IF (scf_control%max_scf > 0) THEN
 
          dft_section => section_vals_get_subs_vals(input, "DFT")
@@ -217,8 +230,22 @@ CONTAINS
             CALL scf_env_release(scf_env)
             CALL get_qs_env(qs_env=qs_env, scf_env=scf_env)
          ELSE
+            !IF(iw>0) WRITE(iw,FMT="(A)") &
+            !"***CALLING qs_scf_env_initialize()"
             CALL qs_scf_env_initialize(qs_env, scf_env)
          ENDIF
+         CALL get_qs_env(qs_env=qs_env,para_env=para_env,rho=rho,matrix_ks_kp=ks_matrix)
+         CALL qs_rho_get(rho, rho_ao=rho_ao)
+
+         !DO ispin = 1, dft_control%nspins
+         !   CALL cp_dbcsr_write_sparse_matrix(rho_ao(ispin)%matrix, 4, after,qs_env, &
+         !                                     para_env, output_unit=iw,omit_headers=omit_headers)
+         !END DO
+         !CALL cp_dbcsr_write_sparse_matrix(ks_matrix(1, 1)%matrix, 4,after,qs_env, para_env, &
+         !                              output_unit=iw,omit_headers=omit_headers)
+         !CALL cp_dbcsr_write_sparse_matrix(ks_matrix(2, 1)%matrix, 4,after,qs_env,para_env, &
+         !                              output_unit=iw,omit_headers=omit_headers)
+        
 
          IF ((scf_control%density_guess .EQ. history_guess) .AND. (first_step_flag)) THEN
             max_scf_tmp = scf_control%max_scf
@@ -228,6 +255,9 @@ CONTAINS
          END IF
 
          IF (.NOT. dft_control%qs_control%cdft) THEN
+            !IF(iw>0) WRITE(iw,FMT="(A)") &
+            !"***CALLING scf_env_do_scf()"
+
             CALL scf_env_do_scf(scf_env=scf_env, scf_control=scf_control, qs_env=qs_env, &
                                 converged=converged, should_stop=should_stop)
          ELSE
@@ -381,6 +411,8 @@ CONTAINS
 
       output_unit = cp_print_key_unit_nr(logger, scf_section, "PRINT%PROGRAM_RUN_INFO", &
                                          extension=".scfLog")
+      !IF(output_unit>0) WRITE(output_unit,FMT="(A)") &
+      !      "***INSIDE scf_env_do_scf(), starting scf_loop"
 
       IF (output_unit > 0) WRITE (UNIT=output_unit, FMT="(/,/,T2,A)") &
          "SCF WAVEFUNCTION OPTIMIZATION"
@@ -417,6 +449,8 @@ CONTAINS
       energy%tot_old = 0.0_dp
 
       scf_outer_loop: DO
+         !IF(output_unit>0) WRITE(output_unit,FMT="(A)") &
+         !   &"***IN SCF_ENV_DO_SCF::CALLING init_scf_loop()"
 
          CALL init_scf_loop(scf_env=scf_env, qs_env=qs_env, &
                             scf_section=scf_section)
@@ -427,7 +461,7 @@ CONTAINS
          scf_loop: DO
 
             CALL timeset(routineN//"_inner_loop", handle2)
-
+            !WRITE(999,*) "SCF ITERATION:",scf_env%iter_count
             scf_env%iter_count = scf_env%iter_count+1
             iter_count = iter_count+1
             CALL cp_iterate(logger%iter_info, last=.FALSE., iter_nr=iter_count)
@@ -436,9 +470,15 @@ CONTAINS
 
             total_steps = total_steps+1
             just_energy = energy_only
+            !IF(output_unit>0) WRITE(output_unit,FMT="(A)") &
+            !"***CALLING qs_ks_update_qs_env()"
 
             CALL qs_ks_update_qs_env(qs_env, just_energy=just_energy, &
                                      calculate_forces=.FALSE.)
+
+            !IF(output_unit>0) WRITE(output_unit,FMT="(A)") &
+            !"***STILL IN SCF_ENV_DO_SCF(): Comes out with an&
+            ! &updated Kohn Sham matrix from qs_ks_update_qs_env()"
 
             ! print 'heavy weight' or relatively expensive quantities
             CALL qs_scf_loop_print(qs_env, scf_env, para_env)
@@ -448,8 +488,16 @@ CONTAINS
                CALL qs_scf_new_mos_kp(qs_env, scf_env, scf_control, diis_step)
             ELSE
                ! Gamma points only
+               !IF(output_unit>0) WRITE(output_unit,FMT="(A)") &
+               !"***IN SCF_ENV_QS_SCF()::CALLING qs_scf_new_mos"
+
                CALL qs_scf_new_mos(qs_env, scf_env, scf_control, scf_section, diis_step, energy_only)
             END IF
+
+            !IF(output_unit>0) WRITE(output_unit,FMT="(A)") &
+            !"***IN SCF_ENV_DO_SCF()::DONE with updating new mos, next steps are &
+            ! &writing outputs, checking convergence, &
+            ! &mixing density for next step, writing wavefunctions, etc.\n"
 
             ! another heavy weight print object, print controlled by dft_section
             CALL qs_scf_write_mos(mos, atomic_kind_set, qs_kind_set, particle_set, dft_section)
@@ -605,7 +653,8 @@ CONTAINS
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'init_scf_loop', routineP = moduleN//':'//routineN
 
-      INTEGER                                            :: handle, ispin, nmo, number_of_OT_envs
+      INTEGER                                            :: handle, iw, ispin, nmo, number_of_OT_envs
+      TYPE(cp_logger_type), POINTER                      :: logger
       LOGICAL                                            :: do_rotation, has_unit_metric, is_full_all
       TYPE(cp_fm_type), POINTER                          :: mo_coeff
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: matrix_ks, matrix_s
@@ -627,6 +676,9 @@ CONTAINS
                       scf_control=scf_control, &
                       dft_control=dft_control, &
                       mos=mos)
+      logger => cp_get_default_logger()
+      iw = cp_print_key_unit_nr(logger,qs_env%input,"DFT%SCF%PRINT%ITERATION_INFO", &
+                                   extension=".scfLog")
 
       ! if using mo_coeff_b then copy to fm
       DO ispin = 1, SIZE(mos) !fm->dbcsr
@@ -658,6 +710,12 @@ CONTAINS
          END IF
 
       CASE (general_diag_method_nr, special_diag_method_nr, block_krylov_diag_method_nr)
+         !IF(iw>0) WRITE(iw,FMT="(A)") "***IN QS_SCF()::Within init_scf_loop()"
+         !IF(iw>0) WRITE(iw,FMT="(A)") &
+         !"***IN QS_SCF()::Under SCF_METHOD general_diag_method_nr or standard &
+         !&creating initial guess, preconditioner for OT(if present),&
+         !&DIIS setup etc. This happens only once"
+
          IF (.NOT. scf_env%skip_diis) THEN
             IF (.NOT. ASSOCIATED(scf_env%scf_diis_buffer)) THEN
                CALL qs_diis_b_create(scf_env%scf_diis_buffer, nbuffer=scf_control%max_diis)

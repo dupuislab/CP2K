@@ -379,10 +379,8 @@ CONTAINS
       CASE default
          CPABORT("")
       END SELECT
-
       !sample peak memory
       CALL m_memory()
-
       CALL pw_cuda_finalize()
       CALL dbcsr_finalize_lib(group=mpi_comm, output_unit=output_unit)
 
@@ -393,7 +391,6 @@ CONTAINS
          WRITE (output_unit, '(T2,"MEMORY| Estimated peak process memory [MiB]",T73,I8)') &
             (m_memory_max_mpi+(1024*1024)-1)/(1024*1024)
       ENDIF
-
       IF (prog_name_id == do_cp2k) THEN
          f_env%force_env => force_env ! for mc
          CALL globenv_retain(globenv) !mc
@@ -412,10 +409,11 @@ CONTAINS
          CALL section_vals_release(root_section)
          CALL globenv_release(globenv)
       END IF
-
+      
       CALL cp_para_env_release(para_env)
       cp2k_run_OK = .TRUE.
-
+      WRITE(*,*) "reached end of cp2k_run"
+      !STOP 'at the end of cp2k_run'
    END FUNCTION cp2k_run
 
 ! **************************************************************************************************

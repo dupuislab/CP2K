@@ -27,6 +27,7 @@ MODULE hfx_energy_potential
                                               cp_print_key_should_output,&
                                               cp_print_key_unit_nr
    USE cp_para_types,                   ONLY: cp_para_env_type
+   USE cp_dbcsr_output,                 ONLY: cp_dbcsr_write_sparse_matrix
    USE dbcsr_api,                       ONLY: dbcsr_copy,&
                                               dbcsr_get_matrix_type,&
                                               dbcsr_p_type,&
@@ -164,7 +165,7 @@ CONTAINS
          my_thread_id, n_threads, natom, nbits, ncob, ncos_max, nints, nkimages, nkind, &
          nneighbors, nseta, nsetb, nsgf_max, nspins, pa, sgfb, shm_task_counter, shm_total_bins, &
          sphi_a_u1, sphi_a_u2, sphi_a_u3, sphi_b_u1, sphi_b_u2, sphi_b_u3, sphi_c_u1, sphi_c_u2, &
-         sphi_c_u3, sphi_d_u1, sphi_d_u2, sphi_d_u3, swap_id, tmp_i4, unit_id
+         sphi_c_u3, sphi_d_u1, sphi_d_u2, sphi_d_u3, swap_id, tmp_i4, unit_id, print_i, print_iter
       INTEGER(int_8) :: atom_block, counter, estimate_to_store_int, max_val_memory, &
          mb_size_buffers, mb_size_f, mb_size_p, mem_compression_counter, &
          mem_compression_counter_disk, mem_eris, mem_eris_disk, mem_max_val, memsize_after, &
@@ -256,7 +257,7 @@ CONTAINS
       CALL cite_reference(Guidon2009)
 
       ehfx = 0.0_dp
-
+      print_iter = 1
       ! ** This is not very clean, but effective. ispin can only be 2 if we do the beta spin part in core
       my_geo_change = geometry_did_change
       IF (ispin == 2) my_geo_change = .FALSE.
@@ -264,7 +265,7 @@ CONTAINS
       logger => cp_get_default_logger()
 
       is_anti_symmetric = dbcsr_get_matrix_type(rho_ao(1, 1)%matrix) .EQ. dbcsr_type_antisymmetric
-
+      !WRITE(130,*) "rho_ao matrix type in hfx_energy", dbcsr_get_matrix_type(rho_ao(1, 1)%matrix)
       IF (my_geo_change) THEN
          CALL m_memory(memsize_before)
          CALL mp_max(memsize_before, para_env%group)
@@ -517,6 +518,7 @@ CONTAINS
             nsgf_max = MAX(nsgf_max, nsgfa(iset))
          ENDDO
       ENDDO
+      !WRITE(101,*) "nsgf_max, size of primitive_integrals (nsgf_max**4)", nsgf_max, nsgf_max**4
       !! Allocate the arrays for the integrals.
       ALLOCATE (primitive_integrals(nsgf_max**4))
       primitive_integrals = 0.0_dp
@@ -578,6 +580,8 @@ CONTAINS
 !$OMP MASTER
       !! Calculate helper array that stores if a certain atomic pair is associated in the KS matrix
       IF (my_geo_change) THEN
+         !WRITE(131,*) "Here in get_atomic_block_maps"
+         !FLUSH(131)
          CALL get_atomic_block_maps(ks_matrix(1, 1)%matrix, basis_parameter, kind_of, &
                                     shm_master_x_data%is_assoc_atomic_block, &
                                     shm_master_x_data%number_of_p_entries, &
@@ -736,6 +740,7 @@ CONTAINS
       !! Get the full density from all the processors
       NULLIFY (full_density_alpha, full_density_beta)
       ALLOCATE (full_density_alpha(shm_block_offset(ncpu+1), nkimages))
+      !WRITE(180,*) "shm_number_of_p_entries", shm_number_of_p_entries
       IF (.NOT. treat_lsd_in_core .OR. nspins == 1) THEN
          CALL timeset(routineN//"_getP", handle_getP)
          DO img = 1, nkimages
@@ -810,6 +815,7 @@ CONTAINS
       END IF
 
       NULLIFY (full_ks_alpha, full_ks_beta)
+      !WRITE(144,*) "Size of full_ks_alfa", shm_block_offset(ncpu+1), nkimages
       ALLOCATE (shm_master_x_data%full_ks_alpha(shm_block_offset(ncpu+1), nkimages))
       full_ks_alpha => shm_master_x_data%full_ks_alpha
       full_ks_alpha = 0.0_dp
@@ -1100,6 +1106,7 @@ CONTAINS
       do_it = .TRUE.
       bin = 0
       DO WHILE (bins_left)
+         !WRITE(102,*) "bins_left, bin #", bins_left, bin
          IF (.NOT. do_dynamic_load_balancing) THEN
             bin = bin+1
             IF (bin > my_bin_size) THEN
@@ -1146,6 +1153,7 @@ CONTAINS
          IF (distribution_energy%number_of_atom_quartets == 0 .OR. &
              my_istart == -1_int_8) my_istart = nblocks**4
          atomic_blocks: DO atom_block = my_istart, nblocks**4-1, n_processes
+            !WRITE(999,*) "at the start of atomic blocks"
             latom_block = INT(MODULO(atom_block, nblocks))+1
             tmp_block = atom_block/nblocks
             katom_block = INT(MODULO(tmp_block, nblocks))+1
@@ -1187,9 +1195,9 @@ CONTAINS
                                  do_periodic, screen_coeffs_set, screen_coeffs_kind, &
                                  coeffs_kind_max0, log10_eps_schwarz, cell, pmax_blocks, &
                                  shm_atomic_pair_list)
-
+            !WRITE(102,*) "outer_iter1 list_ij elements, outer_iter2 list_kl elements", list_ij%n_element, list_kl%n_element
             DO i_list_ij = 1, list_ij%n_element
-
+               
                iatom = list_ij%elements(i_list_ij)%pair(1)
                jatom = list_ij%elements(i_list_ij)%pair(2)
                i_set_list_ij_start = list_ij%elements(i_list_ij)%set_bounds(1)
@@ -1227,8 +1235,10 @@ CONTAINS
                DO i_list_kl = 1, list_kl%n_element
                   katom = list_kl%elements(i_list_kl)%pair(1)
                   latom = list_kl%elements(i_list_kl)%pair(2)
-
+                  !WRITE(103,*) "iatom, jatom, katom, latom",iatom, jatom, katom, latom
+                  !IF (.NOT. (katom+latom <= iatom+jatom)) WRITE(103,*) "cycle back 1st condition"
                   IF (.NOT. (katom+latom <= iatom+jatom)) CYCLE
+                  !IF (((iatom+jatom) .EQ. (katom+latom)) .AND. (katom < iatom)) WRITE(103,*) "cycle back 2nd condition"
                   IF (((iatom+jatom) .EQ. (katom+latom)) .AND. (katom < iatom)) CYCLE
                   i_set_list_kl_start = list_kl%elements(i_list_kl)%set_bounds(1)
                   i_set_list_kl_stop = list_kl%elements(i_list_kl)%set_bounds(2)
@@ -1429,7 +1439,7 @@ CONTAINS
                         use_disk_storage = .FALSE.
                      END IF
                   END IF
-
+                  !WRITE(102,*) "inner iter i_set_list_ij: start, stop",i_set_list_ij_start, i_set_list_ij_stop
                   DO i_set_list_ij = i_set_list_ij_start, i_set_list_ij_stop
                      iset = set_list_ij(i_set_list_ij)%pair(1)
                      jset = set_list_ij(i_set_list_ij)%pair(2)
@@ -1442,10 +1452,11 @@ CONTAINS
 
                      sphi_a_ext_set => sphi_a_ext(:, :, :, iset)
                      sphi_b_ext_set => sphi_b_ext(:, :, :, jset)
+                     !WRITE(102,*) "innermost iter i_set_list_kl: start, stop",i_set_list_kl_start, i_set_list_kl_stop
                      DO i_set_list_kl = i_set_list_kl_start, i_set_list_kl_stop
                         kset = set_list_kl(i_set_list_kl)%pair(1)
                         lset = set_list_kl(i_set_list_kl)%pair(2)
-
+                        !WRITE(104,*) "iset, jset, kset, lset", iset, jset, kset, lset
                         max_val2_set = (screen_coeffs_set(lset, kset, lkind, kkind)%x(1)*rcd2+ &
                                         screen_coeffs_set(lset, kset, lkind, kkind)%x(2))
                         max_val2 = max_val1+max_val2_set
@@ -1655,6 +1666,9 @@ CONTAINS
                         END IF
                         !!!  DEBUG, print out primitive integrals and indices. Only works serial no OMP  !!!
                         IF (.FALSE.) THEN
+                           !WRITE(999,*) "printing #", print_iter, "abcd", iatom, &
+                           !              jatom, katom, latom
+                           print_iter = print_iter + 1
                            CALL print_integrals( &
                               iatom, jatom, katom, latom, shm_set_offset, shm_atomic_block_offset, &
                               iset, jset, kset, lset, nsgfa(iset), nsgfb(jset), nsgfc(kset), nsgfd(lset), primitive_integrals)
@@ -1680,7 +1694,17 @@ CONTAINS
                               END IF
                            END IF
                         ELSE
-                           !! Update Kohn-Sham matrix
+                           !WRITE(147,*) "                              "
+                           !WRITE(147,*) "ATOM GROUP iatom, jatom, katom, latom", iatom, jatom, katom, latom
+                           !WRITE(146,*) "ATOM GROUP iatom, jatom, katom, latom", iatom, jatom, katom, latom
+                           !WRITE(147,*) "full ks alpha before update_fock_as"
+                           DO j = 1, SIZE(full_ks_alpha, 2)
+                              !WRITE(147,*) full_ks_alpha(1:4,j)
+                              !WRITE(147,*) full_ks_alpha(5:8,j)
+                              !WRITE(147,*) full_ks_alpha(9:12,j)
+                           END DO
+                           !WRITE(147,*) "                              "
+                             !! Update Kohn-Sham matrix
                            CALL update_fock_matrix_as( &
                               nsgfa(iset), nsgfb(jset), nsgfc(kset), nsgfd(lset), &
                               fac, symm_fac, full_density_alpha(:, 1), full_ks_alpha(:, 1), &
@@ -1688,6 +1712,13 @@ CONTAINS
                               kbc_buf, kad_buf, kac_buf, iatom, jatom, katom, latom, &
                               iset, jset, kset, lset, offset_bd_set, offset_bc_set, offset_ad_set, offset_ac_set, &
                               atomic_offset_bd, atomic_offset_bc, atomic_offset_ad, atomic_offset_ac)
+                           !WRITE(147,*) "full ks alpha after update_fock_as"
+                           DO j = 1, SIZE(full_ks_alpha, 2)
+                              !WRITE(147,*) full_ks_alpha(1:4,j)
+                              !WRITE(147,*) full_ks_alpha(5:8,j)
+                              !WRITE(147,*) full_ks_alpha(9:12,j)
+                           END DO
+
                            IF (.NOT. treat_lsd_in_core) THEN
                               IF (nspins == 2) THEN
                                  CALL update_fock_matrix_as( &
@@ -1748,6 +1779,10 @@ CONTAINS
       CALL m_memory(memsize_after)
 !$OMP END MASTER
 !$OMP BARRIER
+       
+      !DO print_i=1,SIZE(primitive_integrals)
+        !WRITE(102,*) print_i, primitive_integrals(print_i)
+      !END DO
 
       DEALLOCATE (primitive_integrals)
 !$OMP BARRIER
@@ -1842,6 +1877,19 @@ CONTAINS
       CALL timestop(handle_main)
       ene_x_aa_diag = 0.0_dp
       ene_x_bb_diag = 0.0_dp
+      !WRITE(144,*) "WRITING full_ks_alfa before the loop"
+      !IF (is_anti_symmetric) WRITE(144,*) "********"
+      !IF (is_anti_symmetric) WRITE(144,*) "********"
+      !IF (is_anti_symmetric) WRITE(144,*) "anti-symmetric"
+      !DO j = 1, SIZE(full_ks_alpha, 2)
+      !   WRITE(144,*) full_ks_alpha(:,j)
+      !END DO
+      !FLUSH(144)
+      !IF (is_anti_symmetric) WRITE(154,*) "anti-symmetric"
+      !DO j = 1, SIZE(full_density_alpha, 2)
+      !   WRITE(154,*) full_density_alpha(:,j)
+      !END DO
+      !FLUSH(154)
       DO iatom = 1, natom
          ikind = kind_of(iatom)
          nseta = basis_parameter(ikind)%nset
@@ -1882,6 +1930,13 @@ CONTAINS
             END DO
          END DO
       END DO
+      !FLUSH(144)
+      !WRITE(144,*) "WRITING full_ks_alfa after the loop"
+      !DO j = 1, SIZE(full_ks_alpha, 2)
+      !   WRITE(144,*) full_ks_alpha(:,j)
+      !END DO
+      !FLUSH(144)
+
 
       CALL mp_sync(para_env%group)
       afac = 1.0_dp
@@ -1910,6 +1965,8 @@ CONTAINS
          END IF
          CALL timestop(handle_dist_ks)
       END IF
+      iw = cp_print_key_unit_nr(logger, hfx_section, "HF_INFO", &
+                                   extension=".scfLog")
 
       IF (distribute_fock_matrix) THEN
          !! ** Calculate the exchange energy
@@ -1917,20 +1974,40 @@ CONTAINS
          DO img = 1, nkimages
             CALL dbcsr_trace(ks_matrix(ispin, img)%matrix, rho_ao(ispin, img)%matrix, &
                              etmp)
+            !WRITE(iw,*) "ks_matrix type, rho_ao type in hfx_energy ", &
+            ! dbcsr_get_matrix_type(ks_matrix(ispin, img)%matrix), "  ",&
+            ! dbcsr_get_matrix_type(rho_ao(ispin, img)%matrix)
+            !WRITE(iw,*) "etmp alfa in exchange energy calc", etmp
+            !CALL cp_dbcsr_write_sparse_matrix(ks_matrix(ispin, img)%matrix, 4, 10,qs_env, para_env, &
+            !                           output_unit=iw,omit_headers=.FALSE.)
+            !CALL cp_dbcsr_write_sparse_matrix(rho_ao(ispin, img)%matrix, 4, 10,qs_env, para_env, &
+            !                           output_unit=iw,omit_headers=.FALSE.)
+
             ene_x_aa = ene_x_aa+etmp
          END DO
+         !WRITE(130,*) "Under distribute fock matrix: ene_x_aa  ::::: ", ene_x_aa
          !for ADMMS, we need the exchange matrix k(d) for both spins
          IF (dft_control%do_admm) THEN
             CPASSERT(nkimages == 1)
             CALL dbcsr_copy(matrix_ks_aux_fit_hfx(ispin)%matrix, ks_matrix(ispin, 1)%matrix, &
                             name="HF exch. part of matrix_ks_aux_fit for ADMMS")
          END IF
-
+          
          ene_x_bb = 0.0_dp
          IF (nspins == 2 .AND. .NOT. treat_lsd_in_core) THEN
             DO img = 1, nkimages
                CALL dbcsr_trace(ks_matrix(2, img)%matrix, rho_ao(2, img)%matrix, &
                                 etmp)
+            !WRITE(iw,*) "ks_matrix type, rho_ao type in hfx_energy ", &
+            ! dbcsr_get_matrix_type(ks_matrix(2, img)%matrix), "  ",&
+            ! dbcsr_get_matrix_type(rho_ao(2, img)%matrix)
+            !WRITE(iw,*) "etmp beta in exchange energy calc", etmp
+
+            !CALL cp_dbcsr_write_sparse_matrix(ks_matrix(2, img)%matrix, 4, 10,qs_env, para_env, &
+            !                           output_unit=iw,omit_headers=.FALSE.)
+            !CALL cp_dbcsr_write_sparse_matrix(rho_ao(2, img)%matrix, 4, 10,qs_env, para_env, &
+            !                           output_unit=iw,omit_headers=.FALSE.)
+
                ene_x_bb = ene_x_bb+etmp
             END DO
             !for ADMMS, we need the exchange matrix k(d) for both spins
@@ -1966,7 +2043,7 @@ CONTAINS
          IF (nspins == 2) CALL mp_sum(ene_x_bb, para_env%group)
          ehfx = 0.5_dp*(ene_x_aa+ene_x_bb)
       END IF
-
+      !WRITE(130,*) "EHFX = 0.5* (ENE_AA + ENE_BB)", ehfx, ene_x_aa, ene_x_bb
       !! Print some memeory information if this is the first step
       IF (my_geo_change) THEN
          tmp_i8(1:8) = (/shm_storage_counter_integrals, shm_neris_onthefly, shm_neris_incore, shm_neris_disk, &
@@ -2299,7 +2376,7 @@ CONTAINS
                                pgf2, R2_pgf, log10_pmax, log10_eps_schwarz, rc, rd, &
                                nelements_kl, &
                                neighbor_cells, nimages, do_periodic)
-
+      !WRITE(106,*) "# of elements in pair_list ij and kl", nelements_ij, nelements_kl
       cart_estimate = 0.0_dp
       neris_tmp = 0
       primitive_integrals = 0.0_dp
@@ -2317,7 +2394,7 @@ CONTAINS
             CALL build_pgf_product_list(pgf_list_ij(list_ij), pgf_list_kl(list_kl), pgf_product_list, &
                                         nproducts, log10_pmax, log10_eps_schwarz, neighbor_cells, cell, &
                                         potential_parameter, max_l, do_periodic)
-
+            !WRITE(106,*) "ipgf, jpgf, kpgf, lpgf", ipgf, jpgf, kpgf, lpgf
             s_offset_a = 0
             DO la = la_min, la_max
                s_offset_b = 0
@@ -2341,7 +2418,8 @@ CONTAINS
                         ncod = nco(ld)
                         nsgfld = nsgfl_d(ld)
                         nsod = nso(ld)
-
+                        !WRITE(105,*) "npgf a, b, c, d",&
+                        ! npgfa, npgfb, npgfc, npgfd
                         tmp_max = 0.0_dp
                         CALL evaluate_eri(lib, nproducts, pgf_product_list, &
                                           la, lb, lc, ld, &
@@ -2720,6 +2798,7 @@ CONTAINS
          DO md = 1, md_max
             DO mb = 1, mb_max
                pbd(i) = +density(j)
+               !WRITE(145,*) "jatom, latom, md, mb, density", jatom, latom, md, mb, density(j)
                i = i+1
                j = j+1
             END DO
@@ -2743,6 +2822,7 @@ CONTAINS
          DO mc = 1, mc_max
             DO mb = 1, mb_max
                pbc(i) = -density(j)
+               !WRITE(145,*) "jatom, katom, mc, mb, density", jatom, katom, mc, mb, density(j)
                i = i+1
                j = j+1
             END DO
@@ -2766,6 +2846,7 @@ CONTAINS
          DO md = 1, md_max
             DO ma = 1, ma_max
                pad(i) = -density(j)
+               !WRITE(145,*) "iatom, latom, md, ma, density", iatom, latom, md, ma, density(j)
                i = i+1
                j = j+1
             END DO
@@ -2789,6 +2870,7 @@ CONTAINS
          DO mc = 1, mc_max
             DO ma = 1, ma_max
                pac(i) = +density(j)
+               !WRITE(145,*) "iatom, katom, mc, ma, density", iatom, katom, mc, ma, density(j)
                i = i+1
                j = j+1
             END DO
@@ -2815,6 +2897,8 @@ CONTAINS
             DO mb = 1, mb_max
 !$OMP           ATOMIC
                ks(j) = ks(j)+kbd(i)
+               !WRITE(146,*) "jatom, latom, md, mb, kbd", jatom, latom, md, mb, kbd(i)
+               !WRITE(146,*) "j, ks(j)", j, ks(j)
                i = i+1
                j = j+1
             END DO
@@ -2838,6 +2922,8 @@ CONTAINS
             DO mb = 1, mb_max
 !$OMP           ATOMIC
                ks(j) = ks(j)-kbc(i)
+               !WRITE(146,*) "jatom, katom, mc, mb, kbd", jatom, katom, mc, mb, kbc(i)
+               !WRITE(146,*) "j, ks(j)", j, ks(j)
                i = i+1
                j = j+1
             END DO
@@ -2861,6 +2947,8 @@ CONTAINS
             DO ma = 1, ma_max
 !$OMP           ATOMIC
                ks(j) = ks(j)-kad(i)
+               !WRITE(146,*) "iatom, latom, md, ma, kad", iatom, latom, md, ma, kad(i)
+               !WRITE(146,*) "j, ks(j)", j, ks(j)
                i = i+1
                j = j+1
             END DO
@@ -2885,6 +2973,8 @@ CONTAINS
             DO ma = 1, ma_max
 !$OMP           ATOMIC
                ks(j) = ks(j)+kac(i)
+               !WRITE(146,*) "iatom, katom, mc, ma, kac", iatom, katom, mc, ma, kac(i)
+               !WRITE(146,*) "j, ks(j)", j, ks(j)
                i = i+1
                j = j+1
             END DO
@@ -2931,25 +3021,52 @@ CONTAINS
       REAL(dp), DIMENSION(ma_max*mb_max*mc_max*md_max), &
          INTENT(IN)                                      :: prim
 
-      INTEGER                                            :: iint, ma, mb, mc, md
-
+      INTEGER                                            :: iint, ma, mb, mc, md, i_ind, j_ind, k_ind, l_ind
+      !OPEN(unit = 199, file = "2elec_int.txt", status="old", position="append", action="write")
       iint = 0
+      WRITE(199,*) "# ATOM BLOCK #", i, j, k, l
       DO md = 1, md_max
          DO mc = 1, mc_max
             DO mb = 1, mb_max
                DO ma = 1, ma_max
                   iint = iint+1
-                  IF (ABS(prim(iint)) .GT. 0.0000000000001) &
-                     WRITE (99, *) atom_offsets(i, 1)+ma+set_offsets(iset, 1, i, 1)-1, &
-                     atom_offsets(j, 1)+ma+set_offsets(jset, 1, j, 1)-1, &
-                     atom_offsets(k, 1)+ma+set_offsets(kset, 1, k, 1)-1, &
-                     atom_offsets(l, 1)+ma+set_offsets(lset, 1, l, 1)-1, &
-                     prim(iint)
+                  i_ind = ma + (i-1)*ma_max
+                  j_ind = mb + (j-1)*mb_max
+                  k_ind = mc + (k-1)*mc_max
+                  l_ind = md + (l-1)*md_max
+                  IF (ABS(prim(iint)) .GT. 0.0000000000001) THEN
+                          WRITE(199,*) i_ind, j_ind, k_ind, l_ind, prim(iint)
+                  END IF
                END DO
             END DO
          END DO
       END DO
-
+      FLUSH(199)
+      !CLOSE(199)
+     ! iint = 0
+     ! WRITE(999,*) "Set"
+     ! DO md = 1, md_max
+     !    DO mc = 1, mc_max
+     !       DO mb = 1, mb_max
+     !          DO ma = 1, ma_max
+     !             iint = iint+1
+     !             i_ind = ma+(i-1)*ma_max
+     !             j_ind = mb+(j-1)*mb_max
+     !             k_ind = mc+(k-1)*mc_max
+     !             l_ind = md+(l-1)*md_max
+     !             IF (ABS(prim(iint)) .GT. 0.0000000000001) &
+     !                WRITE (999, *) "i",INT(i_ind,2),", j", INT(j_ind,2),", k", INT(k_ind,2),", l", INT(l_ind,2), &
+     !               !   atom_offsets(i, 1), atom_offsets(j, 1),&
+     !               !   atom_offsets(k, 1),  atom_offsets(l, 1), &
+     !               !  atom_offsets(i, 1)+ma+set_offsets(iset, 1, i,1)-1, &
+     !               ! atom_offsets(j, 1)+ma+set_offsets(jset, 1, j, 1)-1, &
+     !               ! atom_offsets(k, 1)+ma+set_offsets(kset, 1, k, 1)-1, &
+     !               ! atom_offsets(l, 1)+ma+set_offsets(lset, 1, l, 1)-1, &
+     !                prim(iint)
+     !          END DO
+     !       END DO
+     !    END DO
+     ! END DO
    END SUBROUTINE print_integrals
 
 #include "hfx_get_pmax_val.f90"

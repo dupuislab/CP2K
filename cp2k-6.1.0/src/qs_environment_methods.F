@@ -15,8 +15,15 @@ MODULE qs_environment_methods
    USE cell_types,                      ONLY: cell_type
    USE cp_blacs_env,                    ONLY: cp_blacs_env_type
    USE cp_control_types,                ONLY: dft_control_type
+   USE cp_log_handling,                 ONLY: cp_get_default_logger,&
+                                              cp_logger_type
    USE cp_dbcsr_operations,             ONLY: cp_dbcsr_dist2d_to_dist
    USE cp_para_types,                   ONLY: cp_para_env_type
+   USE cp_output_handling,              ONLY: cp_p_file,&
+                                              cp_print_key_finished_output,&
+                                              cp_print_key_should_output,&
+                                              cp_print_key_unit_nr
+
    USE dbcsr_api,                       ONLY: dbcsr_distribution_type
    USE distribution_2d_types,           ONLY: distribution_2d_release,&
                                               distribution_2d_type
@@ -208,7 +215,7 @@ CONTAINS
       CHARACTER(len=*), PARAMETER :: routineN = 'qs_env_rebuild_pw_env', &
          routineP = moduleN//':'//routineN
 
-      INTEGER                                            :: handle
+      INTEGER                                            :: handle,iw
       LOGICAL                                            :: nlcc
       TYPE(cell_type), POINTER                           :: cell
       TYPE(dft_control_type), POINTER                    :: dft_control
@@ -223,6 +230,7 @@ CONTAINS
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
       TYPE(qs_ks_env_type), POINTER                      :: ks_env
       TYPE(rho0_mpole_type), POINTER                     :: rho0_mpole
+      TYPE(cp_logger_type), POINTER                      :: logger
 
       CALL timeset(routineN, handle)
       ! rebuild pw_env
@@ -230,6 +238,13 @@ CONTAINS
       NULLIFY (rho0_mpole, rho0_gs, rho0_rs)
       NULLIFY (ewald_env, ewald_pw, new_pw_env, external_vxc, rho_core, rho_nlcc, rho_nlcc_g, vee, vppl, &
                embed_pot, spin_embed_pot)
+      logger => cp_get_default_logger()
+      iw = cp_print_key_unit_nr(logger,qs_env%input,"DFT%SCF%PRINT%ITERATION_INFO", &
+                                   extension=".scfLog")
+      !IF(iw>0) WRITE(iw,FMT="(A)") "INSIDE QS_ENVIRONMENT_METHODS MODULE::qs_env_rebuild_pw_env()"
+      !IF(iw>0) WRITE(iw,FMT="(A)") "CALLING pw_env_create() or pw_env_rebuild(), etc."
+      !IF(iw>0) WRITE(iw,FMT="(A)") &
+      !         "allocating grids for rho0_mpole, rho_nlcc, zmp potential, embed potential, etc."
 
       CALL get_qs_env(qs_env, ks_env=ks_env, pw_env=new_pw_env)
       IF (.NOT. ASSOCIATED(new_pw_env)) THEN

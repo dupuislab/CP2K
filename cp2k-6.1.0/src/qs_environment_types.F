@@ -896,7 +896,7 @@ CONTAINS
 
       qs_env%outer_scf_ihistory = 0
       qs_env%broyden_adaptive_sigma = -1.0_dp
-
+      !WRITE(115,*) "I. Initializing qs_env, most of the components are set to zero"
       CALL local_rho_set_create(qs_env%local_rho_set)
       CALL hartree_local_create(qs_env%hartree_local)
       qs_env%ref_count = 1

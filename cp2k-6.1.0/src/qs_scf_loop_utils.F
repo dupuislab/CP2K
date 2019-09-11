@@ -8,8 +8,15 @@
 MODULE qs_scf_loop_utils
    USE cp_control_types,                ONLY: dft_control_type
    USE cp_external_control,             ONLY: external_control
-   USE cp_log_handling,                 ONLY: cp_to_string
+   USE cp_log_handling,                 ONLY: cp_to_string, &
+                                              cp_get_default_logger,&
+                                              cp_logger_type
    USE cp_para_types,                   ONLY: cp_para_env_type
+   USE cp_output_handling,              ONLY: cp_p_file,&
+                                              cp_print_key_finished_output,&
+                                              cp_print_key_should_output,&
+                                              cp_print_key_unit_nr
+
    USE dbcsr_api,                       ONLY: dbcsr_copy,&
                                               dbcsr_get_info,&
                                               dbcsr_p_type,&
@@ -130,7 +137,8 @@ CONTAINS
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_new_mos', routineP = moduleN//':'//routineN
 
-      INTEGER                                            :: handle, ispin
+      INTEGER                                            :: handle, ispin, iw
+      TYPE(cp_logger_type), POINTER                      :: logger
       LOGICAL                                            :: has_unit_metric, skip_diag_sub
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: matrix_ks, matrix_s
       TYPE(dft_control_type), POINTER                    :: dft_control
@@ -150,6 +158,11 @@ CONTAINS
                       dft_control=dft_control, &
                       has_unit_metric=has_unit_metric)
       scf_env%iter_param = 0.0_dp
+      logger => cp_get_default_logger()
+      iw = cp_print_key_unit_nr(logger,qs_env%input,"DFT%SCF%PRINT%ITERATION_INFO", &
+                                   extension=".scfLog")
+      !IF(iw>0) WRITE(iw,FMT="(A)") "***INSIDE QS_SCF_LOOP_UTILS MODULE::qs_scf_new_mos()"
+      !IF(iw>0) WRITE(iw,FMT="(A)") "***IN QS_SCF_NEW_MOS::Doing diagonalization"
 
       SELECT CASE (scf_env%method)
       CASE DEFAULT
@@ -167,7 +180,11 @@ CONTAINS
 
          ! Diagonlization in non orthonormal case
       CASE (general_diag_method_nr)
+         !IF(iw>0) WRITE(iw,FMT="(A)") "***CASE: general_diag_method_nr or standard"
+
          IF (dft_control%roks) THEN
+            !IF(iw>0) WRITE(iw,FMT="(A)") &
+            !"***CALLING do_roks_diag()"
             CALL do_roks_diag(scf_env, mos, matrix_ks, matrix_s, &
                               scf_control, scf_section, diis_step, &
                               has_unit_metric)
@@ -177,6 +194,9 @@ CONTAINS
                                 matrix_s, scf_control, scf_section, &
                                 diis_step)
             ELSE
+            
+               !IF(iw>0) WRITE(iw,FMT="(A)") &
+               !"***CALLING do_general_diag() from qs_scf_new_mos()"
                CALL do_general_diag(scf_env, mos, matrix_ks, &
                                     matrix_s, scf_control, scf_section, &
                                     diis_step)

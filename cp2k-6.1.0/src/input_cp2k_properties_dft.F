@@ -81,7 +81,7 @@ CONTAINS
       CPASSERT(.NOT. ASSOCIATED(section))
       CALL section_create(section, name="PROPERTIES", &
                           description="This section is used to set up the PROPERTIES calculation.", &
-                          n_keywords=0, n_subsections=6, repeats=.FALSE.)
+                          n_keywords=0, n_subsections=7, repeats=.FALSE.)
 
       NULLIFY (subsection, keyword)
 
@@ -122,6 +122,8 @@ CONTAINS
       CALL section_release(subsection)
 
    END SUBROUTINE create_properties_section
+
+
 
 ! **************************************************************************************************
 !> \brief creates the input structure used to activate

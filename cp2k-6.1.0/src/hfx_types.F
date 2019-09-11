@@ -503,12 +503,14 @@ CONTAINS
             !!
             !! GENERAL params
             CALL section_vals_val_get(hfx_section, "FRACTION", r_val=real_val, i_rep_section=irep)
+            !WRITE(180,*) "FRACTION", real_val
             actual_x_data%general_parameter%fraction = real_val
             actual_x_data%n_rep_hf = n_rep_hf
 
             NULLIFY (actual_x_data%map_atoms_to_cpus)
 
             CALL section_vals_val_get(hfx_section, "TREAT_LSD_IN_CORE", l_val=logic_val, i_rep_section=irep)
+            !WRITE(180,*) "TREAT_LSD_IN_CORE", logic_val
             actual_x_data%general_parameter%treat_lsd_in_core = logic_val
 
             !! MEMORY section
@@ -519,6 +521,7 @@ CONTAINS
             !! PERIODIC section
             hf_sub_section => section_vals_get_subs_vals(hfx_section, "PERIODIC", i_rep_section=irep)
             CALL section_vals_val_get(hf_sub_section, "NUMBER_OF_SHELLS", i_val=int_val)
+            !WRITE(180,*) "NUMBER_OF_SHELLS", int_val 
             actual_x_data%periodic_parameter%number_of_shells = int_val
             actual_x_data%periodic_parameter%mode = int_val
             CALL get_cell(cell=cell, periodic=actual_x_data%periodic_parameter%perd)
@@ -531,30 +534,40 @@ CONTAINS
             !! SCREENING section
             hf_sub_section => section_vals_get_subs_vals(hfx_section, "SCREENING", i_rep_section=irep)
             CALL section_vals_val_get(hf_sub_section, "EPS_SCHWARZ", r_val=real_val)
+            !WRITE(180,*) "EPS_SCHWARZ", real_val
             actual_x_data%screening_parameter%eps_schwarz = real_val
             CALL section_vals_val_get(hf_sub_section, "EPS_SCHWARZ_FORCES", r_val=real_val)
+            !WRITE(180,*) "EPS_SCHWARZ_FORCES", real_val
             actual_x_data%screening_parameter%eps_schwarz_forces = real_val
             CALL section_vals_val_get(hf_sub_section, "SCREEN_P_FORCES", l_val=logic_val)
+            !WRITE(180,*) "SCREEN_P_FORCES", logic_val
             actual_x_data%screening_parameter%do_p_screening_forces = logic_val
             CALL section_vals_val_get(hf_sub_section, "SCREEN_ON_INITIAL_P", l_val=logic_val)
+            !WRITE(180,*) "SCREEN_ON_INITIAL_P", logic_val
             actual_x_data%screening_parameter%do_initial_p_screening = logic_val
             actual_x_data%screen_funct_is_initialized = .FALSE.
 
             !! INTERACTION_POTENTIAL section
             hf_sub_section => section_vals_get_subs_vals(hfx_section, "INTERACTION_POTENTIAL", i_rep_section=irep)
             CALL section_vals_val_get(hf_sub_section, "POTENTIAL_TYPE", i_val=int_val)
+            !WRITE(180,*) "POTENTIAL_TYPE", int_val
             actual_x_data%potential_parameter%potential_type = int_val
             CALL section_vals_val_get(hf_sub_section, "OMEGA", r_val=real_val)
+            !WRITE(180,*) "OMEGA", real_val
             actual_x_data%potential_parameter%omega = real_val
             CALL section_vals_val_get(hf_sub_section, "SCALE_COULOMB", r_val=real_val)
+            !WRITE(180,*) "SCALE_COULOMB", real_val
             actual_x_data%potential_parameter%scale_coulomb = real_val
             CALL section_vals_val_get(hf_sub_section, "SCALE_LONGRANGE", r_val=real_val)
+            !WRITE(180,*) "SCALE_LONGRANGE", real_val
             actual_x_data%potential_parameter%scale_longrange = real_val
             CALL section_vals_val_get(hf_sub_section, "SCALE_GAUSSIAN", r_val=real_val)
+            !WRITE(180,*) "SCALE_GAUSSIAN", real_val
             actual_x_data%potential_parameter%scale_gaussian = real_val
             IF (actual_x_data%potential_parameter%potential_type == do_hfx_potential_truncated .OR. &
                 actual_x_data%potential_parameter%potential_type == do_hfx_potential_mix_cl_trunc) THEN
                CALL section_vals_val_get(hf_sub_section, "CUTOFF_RADIUS", r_val=real_val)
+               !WRITE(180,*) "CUTOFF_RADIUS", real_val
                actual_x_data%potential_parameter%cutoff_radius = real_val
                CALL section_vals_val_get(hf_sub_section, "T_C_G_DATA", c_val=char_val)
                CALL compress(char_val, .TRUE.)
@@ -577,10 +590,12 @@ CONTAINS
             !! LOAD_BALANCE section
             hf_sub_section => section_vals_get_subs_vals(hfx_section, "LOAD_BALANCE", i_rep_section=irep)
             CALL section_vals_val_get(hf_sub_section, "NBINS", i_val=int_val)
+            !WRITE(180,*) "NBINS", int_val
             actual_x_data%load_balance_parameter%nbins = MAX(1, int_val)
             actual_x_data%load_balance_parameter%blocks_initialized = .FALSE.
 
             CALL section_vals_val_get(hf_sub_section, "RANDOMIZE", l_val=logic_val)
+            !WRITE(180,*) "RANDOMIZE", logic_val
             actual_x_data%load_balance_parameter%do_randomize = logic_val
 
             actual_x_data%load_balance_parameter%rtp_redistribute = .FALSE.
@@ -588,6 +603,7 @@ CONTAINS
                actual_x_data%load_balance_parameter%rtp_redistribute = dft_control%rtp_control%hfx_redistribute
 
             CALL section_vals_val_get(hf_sub_section, "BLOCK_SIZE", i_val=int_val)
+            !WRITE(180,*) "BLOCK_SIZE", int_val
             ! negative values ask for a computed default
             IF (int_val <= 0) THEN
                ! this gives a reasonable number of blocks for binning, yet typically results in blocking.
@@ -1105,9 +1121,11 @@ CONTAINS
 
       ! Memory Storage
       CALL section_vals_val_get(hf_sub_section, "MAX_MEMORY", i_val=int_val)
+      !WRITE(180,*) "MAX_MEMORY", int_val
       memory_parameter%max_memory = int_val
       memory_parameter%max_compression_counter = int_val*1024_int_8*128_int_8
       CALL section_vals_val_get(hf_sub_section, "EPS_STORAGE", r_val=real_val)
+      !WRITE(180,*) "EPS_STORAGE", real_val
       memory_parameter%eps_storage_scaling = real_val
       IF (int_val == 0) THEN
          memory_parameter%do_all_on_the_fly = .TRUE.
@@ -1346,6 +1364,9 @@ CONTAINS
                             "the minimal cell dimension. This may lead to unphysical "// &
                             "total energies. Reduce the cutoff radius in order to avoid "// &
                             "possible problems.")
+               WRITE(12,*) "L_min is greater than truncation cutoff radius: l_min is", l_min, &
+                           "cutoff is", x_data%potential_parameter%cutoff_radius
+               FLUSH(12)
             END IF
          END IF
       END IF

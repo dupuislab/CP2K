@@ -10,7 +10,9 @@
 ! **************************************************************************************************
 MODULE pw_poisson_methods
 
-   USE cp_log_handling,                 ONLY: cp_to_string
+   USE cp_log_handling,                 ONLY: cp_to_string,&
+                                              cp_get_default_logger,&
+                                              cp_logger_type
    USE dielectric_methods,              ONLY: dielectric_compute
    USE kinds,                           ONLY: dp
    USE mathconstants,                   ONLY: fourpi
@@ -240,7 +242,7 @@ CONTAINS
 !> \author apsi
 ! **************************************************************************************************
    SUBROUTINE pw_poisson_solve(poisson_env, density, ehartree, vhartree, &
-                               dvhartree, h_stress, rho_core)
+                               dvhartree, h_stress, rho_core, iw)
 
       TYPE(pw_poisson_type), POINTER                     :: poisson_env
       TYPE(pw_type), POINTER                             :: density
@@ -263,6 +265,9 @@ CONTAINS
       TYPE(pw_poisson_parameter_type), POINTER           :: poisson_params
       TYPE(pw_pool_type), POINTER                        :: pw_pool
       TYPE(pw_type), POINTER                             :: rhog, rhor, tmpg, vhartree_rs
+      TYPE(cp_logger_type), POINTER                      :: logger
+      INTEGER, OPTIONAL                                  :: iw
+      logger => cp_get_default_logger()
 
       CALL timeset(routineN, handle)
 
@@ -290,7 +295,9 @@ CONTAINS
 
          SELECT CASE (poisson_env%green_fft%method)
          CASE (PERIODIC3D, ANALYTIC2D, ANALYTIC1D, ANALYTIC0D, MT2D, MT1D, MT0D, MULTIPOLE0D)
-
+            !WRITE(iw,*) "IN PW_POISSON_METHODS MODULE:: pw_poisson_solve(), CASE PERIODIC3D"
+            !WRITE(iw,*) "IN pw_poisson_solve()::size of rhog passed into it,\n &
+            ! & compare it with G-vectors PW GRID printed above in the grid information",SIZE(rhog%cc)
             CALL pw_transfer(density, rhog)
             IF (PRESENT(ehartree) .AND. (.NOT. PRESENT(vhartree))) THEN
                CALL pw_pool_create_pw(pw_pool, tmpg, use_data=COMPLEXDATA1D, &
@@ -301,14 +308,17 @@ CONTAINS
             IF (PRESENT(vhartree)) THEN
                CALL pw_transfer(rhog, vhartree)
                IF (PRESENT(ehartree)) THEN
-                  ehartree = 0.5_dp*pw_integral_ab(density, vhartree)
+                  !WRITE(iw,*) "Inside pw_poisson_solve CASE PERIODIC3D, calculating ehartree"
+                     ehartree = 0.5_dp*pw_integral_ab(density, vhartree)
+                     !WRITE(iw,*) "and ehartree value is ", ehartree
                END IF
             ELSE IF (PRESENT(ehartree)) THEN
-               ehartree = 0.5_dp*pw_integral_ab(rhog, tmpg)
-               CALL pw_pool_give_back_pw(pw_pool, tmpg)
+                  ehartree = 0.5_dp*pw_integral_ab(rhog, tmpg)
+                  CALL pw_pool_give_back_pw(pw_pool, tmpg)
             END IF
 
          CASE (PS_IMPLICIT)
+            !WRITE(112,*) "Inside pw_poisson_solve CASE PS_IMPLICIT"
 
             IF (has_dielectric .AND. PRESENT(rho_core)) THEN
                SELECT CASE (poisson_params%ps_implicit_params%boundary_condition)

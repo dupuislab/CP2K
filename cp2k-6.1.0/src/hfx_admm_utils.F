@@ -201,23 +201,25 @@ CONTAINS
 ! **************************************************************************************************
 
    SUBROUTINE hfx_ks_matrix(qs_env, matrix_ks, rho, energy, calculate_forces, &
-                            just_energy, v_rspace_new, v_tau_rspace)
+                            just_energy, v_rspace_new, v_tau_rspace, calc_vab)
 
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(dbcsr_p_type), DIMENSION(:, :), POINTER       :: matrix_ks
       TYPE(qs_rho_type), POINTER                         :: rho
       TYPE(qs_energy_type), POINTER                      :: energy
       LOGICAL, INTENT(in)                                :: calculate_forces, just_energy
+      LOGICAL, INTENT(in), OPTIONAL                      :: calc_vab
       TYPE(pw_p_type), DIMENSION(:), POINTER             :: v_rspace_new, v_tau_rspace
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'hfx_ks_matrix', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: handle, ikind, img, irep, ispin, mspin, &
-                                                            n_rep_hf, nimages, ns, nspins
+                                                            n_rep_hf, nimages, ns, nspins, ret
       LOGICAL                                            :: distribute_fock_matrix, &
                                                             do_adiabatic_rescaling, &
                                                             hfx_treat_lsd_in_core, &
-                                                            s_mstruct_changed, use_virial
+                                                            s_mstruct_changed, use_virial, &
+                                                            fileopen
       REAL(dp)                                           :: eh1, ehfx, ehfxrt
       REAL(dp), ALLOCATABLE, DIMENSION(:)                :: hf_energy
       TYPE(cp_para_env_type), POINTER                    :: para_env
@@ -261,14 +263,18 @@ CONTAINS
       nimages = dft_control%nimages
 
       use_virial = virial%pv_availability .AND. (.NOT. virial%pv_numer)
-
+      !IF(calc_vab .OR. s_mstruct_changed) THEN
+      !  OPEN(unit = 199, file = "2elec_int.txt")
+      !  WRITE(199,*) "Writing 2E integrals"
+      !END IF
       hfx_sections => section_vals_get_subs_vals(input, "DFT%XC%HF")
       CALL section_vals_get(hfx_sections, n_repetition=n_rep_hf)
+      WRITE(79,*) "DFT%XC%HF n_rep_hf", n_rep_hf
       CALL section_vals_val_get(hfx_sections, "TREAT_LSD_IN_CORE", l_val=hfx_treat_lsd_in_core, &
                                 i_rep_section=1)
       adiabatic_rescaling_section => section_vals_get_subs_vals(input, "DFT%XC%ADIABATIC_RESCALING")
       CALL section_vals_get(adiabatic_rescaling_section, explicit=do_adiabatic_rescaling)
-
+      !WRITE(180,*)  "DFT%XC%ADIABATIC_RESCALING", do_adiabatic_rescaling
       ! *** Initialize the auxiliary ks matrix to zero if required
       IF (dft_control%do_admm) THEN
          DO ispin = 1, nspins
@@ -315,6 +321,9 @@ CONTAINS
          CALL qs_rho_get(rho_struct=rho_orb, rho_ao_kp=rho_ao_orb)
          ! Finally the real hfx calulation
          ehfx = 0.0_dp
+         !WRITE(180,*) "In hfx_admm before calling integrate_four_centre, no. of p entries", &
+         !      qs_env%x_data(1, 1)%number_of_p_entries
+         IF (calc_vab) s_mstruct_changed = .TRUE.
          DO ispin = 1, mspin
             CALL integrate_four_center(qs_env, matrix_ks_orb, eh1, rho_ao_orb, hfx_sections, &
                                        para_env, s_mstruct_changed, irep, distribute_fock_matrix, &
@@ -385,7 +394,6 @@ CONTAINS
          CALL pw_hfx(qs_env, energy, hfx_sections, poisson_env, auxbas_pw_pool, irep)
 
       END DO
-
       ! *** Set the total HFX energy
       energy%ex = ehfx+ehfxrt
 
@@ -400,14 +408,22 @@ CONTAINS
          virial%pv_virial = virial%pv_virial-virial%pv_fock_4c
          virial%pv_calculate = .FALSE.
       ENDIF
-
+      !WRITE(112,*) "Checking do_adiabatic_rescaling"
+      !IF (do_adiabatic_rescaling)  WRITE(112,*) "do_adiabatic_rescaling is true"
+      !IF (.NOT. do_adiabatic_rescaling) WRITE(112,*) "do_adiabatic_rescaling is false"
       !! If we perform adiabatic rescaling we are now able to rescale the xc-potential
       IF (do_adiabatic_rescaling) THEN
          CALL rescale_xc_potential(qs_env, matrix_ks, rho, energy, v_rspace_new, v_tau_rspace, &
                                    hf_energy, just_energy, calculate_forces, use_virial)
       END IF ! do_adiabatic_rescaling
-
       CALL timestop(handle)
+      !IF(calc_vab .OR. s_mstruct_changed) THEN
+      !FLUSH(199)
+      !ret = fsync(fnum(199))
+      ! Handle possible error
+      !if (ret /= 0) stop "Error calling FSYNC"
+      !CLOSE(199)
+      !END IF
 
    END SUBROUTINE hfx_ks_matrix
 
@@ -1010,7 +1026,6 @@ CONTAINS
 
          matrix_ks_kp(1:nspins, 1:1) => matrix_ks(1:nspins)
          rho_ao_kp(1:nspins, 1:1) => rho_ao(1:nspins)
-
          DO irep = 1, n_rep_hf
             ! the real hfx calulation
             ehfx = 0.0_dp
@@ -1025,5 +1040,11 @@ CONTAINS
 
       CALL timestop(handle)
    END SUBROUTINE tddft_hfx_matrix
+! Declare the interface for POSIX fsync function
+  function fsync (fd) bind(c,name="fsync")
+  use iso_c_binding, only: c_int
+    integer(c_int), value :: fd
+    integer(c_int) :: fsync
+  end function fsync
 
 END MODULE hfx_admm_utils

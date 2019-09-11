@@ -180,7 +180,7 @@ CONTAINS
          vdW_nl = .FALSE.
       END IF
       IF (PRESENT(edisp)) edisp = 0.0_dp
-
+      !WRITE(150,*) "In qs_vxc.F myfun and xc_none", myfun, xc_none
       IF (myfun /= xc_none .OR. vdW_nl) THEN
 
          ! test if the real space density is available

@@ -229,10 +229,11 @@ CONTAINS
       TYPE(qmmm_env_qm_type), OPTIONAL, POINTER          :: qmmm_env_qm
       TYPE(section_vals_type), POINTER                   :: force_env_section, subsys_section
       LOGICAL, INTENT(IN)                                :: use_motion_section
+      TYPE(cp_logger_type), POINTER                      :: logger
 
       CHARACTER(len=*), PARAMETER :: routineN = 'qs_init', routineP = moduleN//':'//routineN
 
-      INTEGER                                            :: ikind, method_id, natom, nkind
+      INTEGER                                            :: ikind, method_id, natom, nkind,iw
       LOGICAL                                            :: do_admm_rpa, do_et, do_exx, do_hfx, &
                                                             do_kpoints, mp2_present, my_qmmm, &
                                                             qmmm_decoupl, silent, use_ref_cell
@@ -256,8 +257,12 @@ CONTAINS
       NULLIFY (my_cell, my_cell_ref, atomic_kind_set, particle_set, &
                qs_kind_set, kpoint_section, dft_section, &
                subsys, ks_env, dft_control, blacs_env)
-
+      logger => cp_get_default_logger()
       CALL set_qs_env(qs_env, input=force_env_section)
+      iw = cp_print_key_unit_nr(logger,qs_env%input,"DFT%SCF%PRINT%ITERATION_INFO", &
+                                   extension=".scfLog")
+      !IF(iw>0) WRITE(iw,*) "*#* INSIDE QS_ENVIRONMENT MODULE: qs_init()"
+
       IF (.NOT. ASSOCIATED(subsys_section)) THEN
          subsys_section => section_vals_get_subs_vals(force_env_section, "SUBSYS")
       END IF
@@ -285,15 +290,15 @@ CONTAINS
       CASE DEFAULT
          ! Do nothing
       END SELECT
-
+      !IF(iw>0) WRITE(iw,*) "*#* INSIDE QS_INIT(): CALLING qs_subsys_create()"
       CALL qs_subsys_create(subsys, para_env, &
                             force_env_section=force_env_section, &
                             subsys_section=subsys_section, &
                             use_motion_section=use_motion_section, &
                             root_section=root_section, &
                             cp_subsys=cp_subsys, cell=cell, cell_ref=cell_ref)
-
-      CALL qs_ks_env_create(ks_env)
+      !IF(iw>0) WRITE(iw,*) "*#* INSIDE QS_INIT(): CALLING qs_ks_env_create()"
+      CALL qs_ks_env_create(ks_env,iw=iw)
       CALL set_ks_env(ks_env, subsys=subsys)
       CALL set_qs_env(qs_env, ks_env=ks_env)
 
@@ -370,6 +375,7 @@ CONTAINS
       CALL section_vals_get(hfx_section, explicit=do_hfx)
       CALL get_qs_env(qs_env, dft_control=dft_control)
       IF (do_hfx) THEN
+
          ! Retrieve particle_set and atomic_kind_set (needed for both kinds of initialization)
          natom = SIZE(particle_set)
          CALL hfx_create(qs_env%x_data, para_env, hfx_section, natom, atomic_kind_set, &

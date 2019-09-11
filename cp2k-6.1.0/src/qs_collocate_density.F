@@ -1470,6 +1470,9 @@ CONTAINS
       TYPE(realspace_grid_p_type), DIMENSION(:), POINTER :: rs_rho
       TYPE(task_list_type), POINTER                      :: task_list, task_list_soft
 
+      !WRITE(112,*) "I am in qs_collocate_density module and inside&
+      !             & calculate_rho_elec subroutine, I will number the steps till&
+      !             & we get out of here"
       CALL timeset(routineN, handle)
 
       CPASSERT(PRESENT(matrix_p) .OR. PRESENT(matrix_p_kp))
@@ -1521,7 +1524,7 @@ CONTAINS
       ELSE
          my_basis_type = "ORB"
       END IF
-
+      !WRITE(112,*) "#1. Calling get_ks_env()"
       CALL get_ks_env(ks_env, &
                       qs_kind_set=qs_kind_set, &
                       cell=cell, &
@@ -1531,6 +1534,7 @@ CONTAINS
 
       SELECT CASE (my_basis_type)
       CASE ("ORB")
+         !WRITE(112,*) "#2. Inside CASE:ORB for basis type, calling get_ks_env again "
          CALL get_ks_env(ks_env, &
                          task_list=task_list, &
                          task_list_soft=task_list_soft)
@@ -1574,7 +1578,7 @@ CONTAINS
                           basis_set=orb_basis_set, basis_type=my_basis_type)
 
          IF (.NOT. ASSOCIATED(orb_basis_set)) CYCLE
-
+         !WRITE(112,*) "#3. For each atomic kind calling get_gto_basis_set()"
          CALL get_gto_basis_set(gto_basis_set=orb_basis_set, &
                                 npgf=npgfa, nset=nseta, lmax=mylmax)
 
@@ -1616,6 +1620,7 @@ CONTAINS
       atom_pair_send => task_list%atom_pair_send
       atom_pair_recv => task_list%atom_pair_recv
       ntasks = task_list%ntasks
+      !WRITE(150,*) "ntasks ", ntasks
 
       ! *** set up the pw multi-grids
       CPASSERT(ASSOCIATED(pw_env))
@@ -1762,6 +1767,7 @@ CONTAINS
 
                CALL dbcsr_get_block_p(matrix=deltap(img)%matrix, &
                                       row=brow, col=bcol, BLOCK=p_block, found=found)
+               IF(.NOT. found) STOP
                CPASSERT(found)
 
                iatom_old = iatom
@@ -1823,7 +1829,6 @@ CONTAINS
             ELSE
                scale = 2.0_dp
             END IF
-
             ! check whether we need to use fawzi's generalised collocation scheme
             IF (rs_rho(igrid_level)%rs_grid%desc%distributed) THEN
                !tasks(4,:) is 0 for replicated, 1 for distributed 2 for exceptional distributed tasks
@@ -1837,6 +1842,7 @@ CONTAINS
             ENDIF
 
             IF (nthread > 1) THEN
+               !WRITE(126,*) "iatom, jatom, scale", iatom, jatom, scale
                IF (iatom <= jatom) THEN
                   CALL collocate_pgf_product_rspace( &
                      la_max(iset), zeta(ipgf, iset), la_min(iset), &
@@ -1864,7 +1870,9 @@ CONTAINS
                      subpatch_pattern=tasks(6, itask), lmax_global=lmax_global)
                END IF
             ELSE
+               !WRITE(126,*) "iatom, jatom, scale", iatom, jatom, scale
                IF (iatom <= jatom) THEN
+                  !WRITE(126,*) "iatom<=jatom: scale", iatom, jatom, scale
                   CALL collocate_pgf_product_rspace( &
                      la_max(iset), zeta(ipgf, iset), la_min(iset), &
                      lb_max(jset), zetb(jpgf, jset), lb_min(jset), &
@@ -1876,6 +1884,7 @@ CONTAINS
                      map_consistent=map_consistent, use_subpatch=use_subpatch, &
                      subpatch_pattern=tasks(6, itask), lmax_global=lmax_global)
                ELSE
+                  !WRITE(126,*) "else: scale", iatom, jatom, scale
                   rab_inv = -rab
                   CALL collocate_pgf_product_rspace( &
                      lb_max(jset), zetb(jpgf, jset), lb_min(jset), &
@@ -1892,6 +1901,7 @@ CONTAINS
          END DO loop_tasks
          END DO loop_pairs
 !$OMP END DO
+         !WRITE(126,*) "END of loop_pairs and loop_tasks"
 
          ! Now sum the thread-local grids back into the rs_grid
          ! (in parallel, each thread writes to a section of the rs_grid at a time)
@@ -1954,7 +1964,10 @@ CONTAINS
       ENDIF
 
       DEALLOCATE (pabt, workt)
-
+      !WRITE(112,*) "#4. Lot of things happened above where the real space&
+      !              & density grid is being constructed, after all this a call &
+      !              & to density_rs2pw() will give us gspace. Nowhere in this &
+      !              & process any core charge is used. Everything is electrons."
       CALL density_rs2pw(pw_env, rs_rho, rho, rho_gspace)
 
       total_rho = pw_integrate_function(rho%pw, isign=-1)

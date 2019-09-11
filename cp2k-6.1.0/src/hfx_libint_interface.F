@@ -1531,7 +1531,7 @@ CONTAINS
       m_max = n_a+n_b+n_c+n_d
       mysize = ncoa*ncob*ncoc*ncod
       a_mysize = mysize
-
+      !WRITE(108,*) "n_a, n_b, n_c, n_d", n_a, n_b, n_c, n_d
       work = 0.0_dp
       IF (m_max /= 0) THEN
          perm_case = 1

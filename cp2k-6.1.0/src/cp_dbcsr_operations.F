@@ -180,7 +180,6 @@ CONTAINS
        ENDDO
        CALL dbcsr_iterator_stop(iter)
 !$OMP END PARALLEL
-
       CALL timestop(handle)
    END SUBROUTINE copy_${fm}$_to_dbcsr_bc
 

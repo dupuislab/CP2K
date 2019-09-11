@@ -75,7 +75,6 @@ CONTAINS
       TYPE(dbcsr_type)                                   :: a_db, b_db, c_db
 
       CALL timeset(routineN, handle)
-
       my_multi = cp_fm_get_mm_type()
       ! catch the special case that matrices have different blocking
       ! SCALAPACK can deal with it but dbcsr doesn't like it

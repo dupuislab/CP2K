@@ -22,6 +22,9 @@ MODULE qs_ks_types
    USE cp_control_types,                ONLY: dft_control_release,&
                                               dft_control_retain,&
                                               dft_control_type
+   USE cp_log_handling,                 ONLY: cp_get_default_logger,&
+                                              cp_logger_type
+
    USE cp_para_env,                     ONLY: cp_para_env_release,&
                                               cp_para_env_retain
    USE cp_para_types,                   ONLY: cp_para_env_type
@@ -141,7 +144,8 @@ MODULE qs_ks_types
       LOGICAL                                               :: s_mstruct_changed = .TRUE., &
                                                                rho_changed = .TRUE., &
                                                                potential_changed = .TRUE., &
-                                                               forces_up_to_date = .FALSE.
+                                                               forces_up_to_date = .FALSE., &
+                                                               symmetry = .TRUE.
       INTEGER                                               :: n_evals = 0, &
                                                                id_nr = -1, &
                                                                ref_count = 1
@@ -234,14 +238,18 @@ CONTAINS
 !> \param ks_env ...
 !> \author Ole Schuett
 ! **************************************************************************************************
-   SUBROUTINE qs_ks_env_create(ks_env)
+   SUBROUTINE qs_ks_env_create(ks_env,iw)
       TYPE(qs_ks_env_type), POINTER                      :: ks_env
-
+      TYPE(cp_logger_type), POINTER                      :: logger
+      INTEGER, OPTIONAL                                  :: iw
       CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_ks_env_create', &
          routineP = moduleN//':'//routineN
-
+      logger => cp_get_default_logger()
+     
+      !IF(iw>0) WRITE(iw,*) "INSIDE QS_KS_TYPES MODULE:: qs_ks_env_create"
       IF (ASSOCIATED(ks_env)) CPABORT("ks_env already associated")
       ALLOCATE (ks_env)
+      !IF(iw>0) WRITE(iw,*) "INSIDE qs_ks_env_create: CALLING qs_rho_create()"
       CALL qs_rho_create(ks_env%rho)
       CALL qs_rho_create(ks_env%rho_aux_fit)
       CALL qs_rho_create(ks_env%rho_aux_fit_buffer)
@@ -345,7 +353,7 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE get_ks_env(ks_env, v_hartree_rspace, &
                          s_mstruct_changed, rho_changed, &
-                         potential_changed, forces_up_to_date, &
+                         potential_changed, forces_up_to_date, symmetry,&
                          matrix_h, matrix_ks, matrix_ks_im, matrix_vxc, matrix_ks_aux_fit, &
                          matrix_ks_aux_fit_im, matrix_ks_aux_fit_dft, matrix_ks_aux_fit_hfx, &
                          kinetic, matrix_s, matrix_s_aux_fit, matrix_s_aux_fit_vs_orb, &
@@ -369,7 +377,7 @@ CONTAINS
       TYPE(qs_ks_env_type), POINTER                      :: ks_env
       TYPE(pw_type), OPTIONAL, POINTER                   :: v_hartree_rspace
       LOGICAL, OPTIONAL                                  :: s_mstruct_changed, rho_changed, &
-                                                            potential_changed, forces_up_to_date
+                                                            potential_changed, forces_up_to_date, symmetry
       TYPE(dbcsr_p_type), DIMENSION(:), OPTIONAL, POINTER :: matrix_h, matrix_ks, matrix_ks_im, &
          matrix_vxc, matrix_ks_aux_fit, matrix_ks_aux_fit_im, matrix_ks_aux_fit_dft, &
          matrix_ks_aux_fit_hfx, kinetic, matrix_s, matrix_s_aux_fit, matrix_s_aux_fit_vs_orb, &
@@ -429,6 +437,7 @@ CONTAINS
       IF (PRESENT(rho_changed)) rho_changed = ks_env%rho_changed
       IF (PRESENT(potential_changed)) potential_changed = ks_env%potential_changed
       IF (PRESENT(forces_up_to_date)) forces_up_to_date = ks_env%forces_up_to_date
+      IF (PRESENT(symmetry)) symmetry = ks_env%symmetry
       IF (PRESENT(v_hartree_rspace)) v_hartree_rspace => ks_env%v_hartree_rspace
 
       IF (PRESENT(matrix_ks)) matrix_ks => get_1d_pointer(ks_env%matrix_ks)
@@ -598,7 +607,7 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE set_ks_env(ks_env, v_hartree_rspace, &
                          s_mstruct_changed, rho_changed, &
-                         potential_changed, forces_up_to_date, &
+                         potential_changed, forces_up_to_date, symmetry,&
                          matrix_h, matrix_ks, matrix_ks_im, matrix_vxc, matrix_ks_aux_fit, matrix_ks_aux_fit_im, &
                          matrix_ks_aux_fit_dft, matrix_ks_aux_fit_hfx, kinetic, matrix_s, matrix_s_aux_fit, &
                          matrix_s_aux_fit_vs_orb, matrix_s_RI_aux, matrix_w, matrix_w_mp2, matrix_p_mp2, gamma_matrix, &
@@ -616,7 +625,7 @@ CONTAINS
       TYPE(qs_ks_env_type), POINTER                      :: ks_env
       TYPE(pw_type), OPTIONAL, POINTER                   :: v_hartree_rspace
       LOGICAL, OPTIONAL                                  :: s_mstruct_changed, rho_changed, &
-                                                            potential_changed, forces_up_to_date
+                                                            potential_changed, forces_up_to_date, symmetry
       TYPE(dbcsr_p_type), DIMENSION(:), OPTIONAL, POINTER :: matrix_h, matrix_ks, matrix_ks_im, &
          matrix_vxc, matrix_ks_aux_fit, matrix_ks_aux_fit_im, matrix_ks_aux_fit_dft, &
          matrix_ks_aux_fit_hfx, kinetic, matrix_s, matrix_s_aux_fit, matrix_s_aux_fit_vs_orb, &
@@ -649,6 +658,7 @@ CONTAINS
       IF (PRESENT(rho_changed)) ks_env%rho_changed = rho_changed
       IF (PRESENT(potential_changed)) ks_env%potential_changed = potential_changed
       IF (PRESENT(forces_up_to_date)) ks_env%forces_up_to_date = forces_up_to_date
+      IF (PRESENT(symmetry)) ks_env%symmetry = symmetry
       IF (ks_env%s_mstruct_changed .OR. ks_env%potential_changed .OR. ks_env%rho_changed) &
          ks_env%forces_up_to_date = .FALSE.
       IF (PRESENT(v_hartree_rspace)) ks_env%v_hartree_rspace => v_hartree_rspace

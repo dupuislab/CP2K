@@ -12,6 +12,12 @@
 MODULE qs_energy
    USE almo_scf,                        ONLY: almo_entry_scf
    USE cp_control_types,                ONLY: dft_control_type
+   USE cp_log_handling,                 ONLY: cp_get_default_logger,&
+                                              cp_logger_type
+   USE cp_output_handling,              ONLY: cp_p_file,&
+                                              cp_print_key_finished_output,&
+                                              cp_print_key_should_output,&
+                                              cp_print_key_unit_nr
    USE dm_ls_scf,                       ONLY: ls_scf
    USE kg_energy_corrections,           ONLY: kg_energy_correction
    USE lri_environment_methods,         ONLY: lri_print_stat
@@ -58,15 +64,23 @@ CONTAINS
 
       CHARACTER(len=*), PARAMETER :: routineN = 'qs_energies', routineP = moduleN//':'//routineN
 
-      INTEGER                                            :: handle
+      INTEGER                                            :: handle,iw
       LOGICAL                                            :: my_calc_forces, run_rtp
       TYPE(dft_control_type), POINTER                    :: dft_control
       TYPE(qs_energy_type), POINTER                      :: energy
+      TYPE(cp_logger_type), POINTER                      :: logger
 
       CALL timeset(routineN, handle)
 
       my_calc_forces = .FALSE.
       IF (PRESENT(calc_forces)) my_calc_forces = calc_forces
+      logger => cp_get_default_logger()
+      iw = cp_print_key_unit_nr(logger,qs_env%input,"DFT%SCF%PRINT%ITERATION_INFO", &
+                                   extension=".scfLog")
+      !IF(iw>0) WRITE(iw,FMT="(A)") "INSIDE QS_ENERGY MODULE::qs_energies()"
+      !IF(iw>0) WRITE(iw,FMT="(A)") "CALLING qs_env_rebuild_pw_env()"
+      !IF(iw>0) WRITE(iw,FMT="(A)") &
+      !"rebuilds the pw_env in the given qs_env, allocating it if necessary" 
 
       CALL qs_env_rebuild_pw_env(qs_env)
 
@@ -83,6 +97,7 @@ CONTAINS
          ELSE IF (dft_control%qs_control%do_almo_scf) THEN
             CALL almo_entry_scf(qs_env=qs_env, calc_forces=my_calc_forces)
          ELSE
+            !IF(iw>0) WRITE(iw,FMT="(A)") "CALLING scf() which does the actual scf loop"
             CALL scf(qs_env=qs_env)
 
             ! Compute MP2 energy

@@ -104,6 +104,7 @@ CONTAINS
       ALLOCATE (sendbuffer(number_of_p_entries))
       ALLOCATE (recbuffer(number_of_p_entries))
 
+      !WRITE(121,*) "number_of_p_entries", number_of_p_entries
       i = 1
       CALL dbcsr_iterator_start(iter, rho, shared=.FALSE.)
       DO WHILE (dbcsr_iterator_blocks_left(iter))

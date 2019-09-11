@@ -192,7 +192,6 @@ CONTAINS
       CALL copy_repl_dbcsr_to_repl_fm(sparse_matrix, matrix)
 
       CALL mp_sum(matrix, group)
-
       SELECT CASE (dbcsr_get_matrix_type (sparse_matrix))
       CASE (dbcsr_type_symmetric)
          CALL symmetrize_matrix(matrix, "upper_to_lower")
@@ -210,7 +209,6 @@ CONTAINS
       CALL get_qs_env(qs_env=qs_env, qs_kind_set=qs_kind_set)
       dim_row = SIZE(matrix, 1)
       dim_col = SIZE(matrix, 2)
-
       IF (PRESENT(first_row)) THEN
          row1 = MAX(1, first_row)
       ELSE
@@ -541,6 +539,7 @@ CONTAINS
          IF (omit_headers) THEN
             fmtstr2 = "(T2,   (1X,F  .  ))"
          ELSE
+            !fmtstr2 = "(T2,2I5,2X,A2,1X,A8,   (1X,F  .  ))"
             fmtstr2 = "(T2, I5,        18X,   (1X,F  .  ))"
          END IF
 
@@ -584,7 +583,7 @@ CONTAINS
                      irow, (matrix(irow, jcol), jcol=from, to)
                ELSE
                   WRITE (UNIT=output_unit, FMT=fmtstr2) &
-                     (matrix(irow, jcol), jcol=from, to)
+                     irow, (matrix(irow, jcol), jcol=from, to)
                END IF
             END DO
          END DO

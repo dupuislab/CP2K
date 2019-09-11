@@ -1237,7 +1237,6 @@ CONTAINS
 #endif
 
       CALL timeset(routineN, handle)
-
       ss = 1
       ts = 1
 
@@ -1258,7 +1257,6 @@ CONTAINS
 #else
       CALL dcopy(ncol*n, a(1, ss), 1, b(1, ts), 1)
 #endif
-
       CALL timestop(handle)
 
    END SUBROUTINE cp_fm_to_fm_columns

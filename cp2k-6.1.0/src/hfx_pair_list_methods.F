@@ -93,6 +93,7 @@ CONTAINS
       EtaInv = list2%ZetaInv
       Zeta_C = list2%zeta
       Zeta_D = list2%zetb
+      !WRITE(109,*) "list1_images, list2_images", nimages1, nimages2
       DO i = 1, nimages1
          P = list1%image_list(i)%P
          R1 = list1%image_list(i)%R
@@ -101,7 +102,9 @@ CONTAINS
          ra = list1%image_list(i)%ra
          rb = list1%image_list(i)%rb
          DO j = 1, nimages2
+            !WRITE(109,*) "i, j", i, j
             pgf_max_2 = list2%image_list(j)%pgf_max
+            !IF (pgf_max_1+pgf_max_2+log10_pmax < log10_eps_schwarz) WRITE(109,*) "cycle back (eps_schwarz)"
             IF (pgf_max_1+pgf_max_2+log10_pmax < log10_eps_schwarz) CYCLE
             Q = list2%image_list(j)%P
             R2 = list2%image_list(j)%R
@@ -356,12 +359,16 @@ CONTAINS
          END IF
          AB = ra-im_B
          rab2 = AB(1)**2+AB(2)**2+AB(3)**2
+         !WRITE(107,*) "ith neighbor_cell", i
+         !IF (screen1(1)*rab2+screen1(2)+screen2(2)+log10_pmax < log10_eps_schwarz) WRITE(107,*) "cycle back"
          IF (screen1(1)*rab2+screen1(2)+screen2(2)+log10_pmax < log10_eps_schwarz) CYCLE
          element_counter = 0
          DO ipgf = 1, npgfa
             DO jpgf = 1, npgfb
                element_counter = element_counter+1
                pgf_max = pgf(jpgf, ipgf)%x(1)*rab2+pgf(jpgf, ipgf)%x(2)
+               !WRITE(107,*) "i, j", ipgf, jpgf
+               !IF (pgf_max+screen2(2)+log10_pmax < log10_eps_schwarz) WRITE(107,*) "cycle back based on pgf cond."
                IF (pgf_max+screen2(2)+log10_pmax < log10_eps_schwarz) THEN
                   CYCLE
                END IF

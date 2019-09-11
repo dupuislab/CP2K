@@ -103,9 +103,10 @@ CONTAINS
          routineP = moduleN//':'//routineN
 
       INTEGER                                            :: nmo
-
+      WRITE(119,*) "In qs_mo_types::duplicate_mo_set() routine"
+      FLUSH(UNIT=119)
       ALLOCATE (mo_set_new)
-
+      WRITE(119,*) "In qs_mo_types::duplicate_mo_set() at 1"
       mo_set_new%maxocc = mo_set_old%maxocc
       mo_set_new%nelectron = mo_set_old%nelectron
       mo_set_new%n_el_f = mo_set_old%n_el_f
@@ -119,10 +120,14 @@ CONTAINS
       mo_set_new%flexible_electron_count = mo_set_old%flexible_electron_count
 
       nmo = mo_set_new%nmo
+      WRITE(119,*) "In qs_mo_types::duplicate_mo_set() at 2"
+      FLUSH(UNIT=119)
 
       NULLIFY (mo_set_new%mo_coeff)
       CALL cp_fm_create(mo_set_new%mo_coeff, mo_set_old%mo_coeff%matrix_struct)
       CALL cp_fm_to_fm(mo_set_old%mo_coeff, mo_set_new%mo_coeff)
+      WRITE(119,*) "In qs_mo_types::duplicate_mo_set() at 3"
+      FLUSH(UNIT=119)
 
       NULLIFY (mo_set_new%mo_coeff_b)
       IF (ASSOCIATED(mo_set_old%mo_coeff_b)) THEN
@@ -130,12 +135,18 @@ CONTAINS
          CALL dbcsr_copy(mo_set_new%mo_coeff_b, mo_set_old%mo_coeff_b)
       ENDIF
       mo_set_new%use_mo_coeff_b = mo_set_old%use_mo_coeff_b
+      WRITE(119,*) "In qs_mo_types::duplicate_mo_set() at 4"
+      FLUSH(UNIT=119)
 
       ALLOCATE (mo_set_new%eigenvalues(nmo))
       mo_set_new%eigenvalues = mo_set_old%eigenvalues
 
       ALLOCATE (mo_set_new%occupation_numbers(nmo))
       mo_set_new%occupation_numbers = mo_set_old%occupation_numbers
+      WRITE(119,*) "In qs_mo_types::duplicate_mo_set() at 5"
+      WRITE (119, *) "WRITING dup MOS",mo_set_new%eigenvalues(2)
+
+      FLUSH(UNIT=119)
 
    END SUBROUTINE duplicate_mo_set
 
@@ -164,7 +175,8 @@ CONTAINS
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'allocate_mo_set', &
          routineP = moduleN//':'//routineN
-
+      
+      
       IF (ASSOCIATED(mo_set)) CALL deallocate_mo_set(mo_set)
 
       ALLOCATE (mo_set)

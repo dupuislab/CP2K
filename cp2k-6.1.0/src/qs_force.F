@@ -103,15 +103,22 @@ CONTAINS
    SUBROUTINE qs_calc_energy_force(qs_env, calc_force, consistent_energies, linres)
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL                                            :: calc_force, consistent_energies, linres
+      INTEGER                                            :: iw
+      TYPE(cp_logger_type), POINTER                      :: logger
 
       CHARACTER(len=*), PARAMETER :: routineN = 'qs_calc_energy_force', &
          routineP = moduleN//':'//routineN
 
       qs_env%linres_run = linres
       CALL set_qs_env(qs_env)
+      logger => cp_get_default_logger()
+      iw = cp_print_key_unit_nr(logger,qs_env%input,"DFT%SCF%PRINT%ITERATION_INFO", &
+                                   extension=".scfLog")
       IF (calc_force) THEN
          CALL qs_forces(qs_env)
       ELSE
+         !IF(iw>0) WRITE(iw,FMT="(A)") "***INSIDE QS_FORCE MODULE::qs_calc_energy_force()"
+         !IF(iw>0) WRITE(iw,FMT="(A)") "***CALLING qs_energies()"
          CALL qs_energies(qs_env, calc_forces=.FALSE., &
                           consistent_energies=consistent_energies)
       END IF

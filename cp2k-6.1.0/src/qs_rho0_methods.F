@@ -179,7 +179,7 @@ CONTAINS
    SUBROUTINE calculate_rho0_atom(gapw_control, rho_atom_set, rho0_atom_set, &
                                   rho0_mp, a_list, g_atom, &
                                   paw_atom, natom, ikind, qs_kind, harmonics, &
-                                  rho0_h_tot)
+                                  rho0_h_tot,calls)
 
       TYPE(gapw_control_type), POINTER                   :: gapw_control
       TYPE(rho_atom_type), DIMENSION(:), POINTER         :: rho_atom_set
@@ -192,7 +192,7 @@ CONTAINS
       TYPE(qs_kind_type), INTENT(IN)                     :: qs_kind
       TYPE(harmonics_atom_type), POINTER                 :: harmonics
       REAL(dp), INTENT(INOUT)                            :: rho0_h_tot
-
+      INTEGER, OPTIONAL                                  :: calls
       CHARACTER(len=*), PARAMETER :: routineN = 'calculate_rho0_atom', &
          routineP = moduleN//':'//routineN
 
@@ -222,16 +222,21 @@ CONTAINS
                           norm_g0l_h=norm_g0l_h)
 
       nr = g_atom%nr
-
+      
 ! Set density coefficient to zero befor the calculation
       DO iat = 1, natom
          iatom = a_list(iat)
          rho0_atom_set(iatom)%rho0_rad_h%r_coef = 0.0_dp
          rho0_mp%mp_rho(iatom)%Qlm_tot = 0.0_dp
-         rho0_mp%mp_rho(iatom)%Qlm_tot(1) = rho0_mp%mp_rho(iatom)%Qlm_z
+         !IF(calls == 2) WRITE(116,*) "calls value inside calculate_rho0:",calls
+         !# Lippert, 1999 Eqn. [22], last term n_A^Z
+         IF(calls == 2 .OR. calls == 3) rho0_mp%mp_rho(iatom)%Qlm_tot(1) = rho0_mp%mp_rho(iatom)%Qlm_z
+         !WRITE(117,*) "iatom, calls,  rho-_mp%mp_rho(iatom)%Qlm_z", iat, calls, &
+         !     & rho0_mp%mp_rho(iatom)%Qlm_z
+         !Q0 looks like zeroth multipole moment which is nothing but the total
+         !charge
          rho0_mp%mp_rho(iatom)%Q0 = 0.0_dp
       ENDDO
-
       IF (.NOT. (.NOT. paw_atom .AND. gapw_control%nopaw_as_gpw)) THEN
          DO iat = 1, natom
             iatom = a_list(iat)
@@ -247,10 +252,13 @@ CONTAINS
                cpc_ah = 0._dp
                ALLOCATE (cpc_as(nsotot, nsotot, nspins))
                cpc_as = 0._dp
-               DO ispin = 1, nspins
-                  CALL prj_scatter(cpc_h(ispin)%r_coef, cpc_ah(:, :, ispin), qs_kind)
-                  CALL prj_scatter(cpc_s(ispin)%r_coef, cpc_as(:, :, ispin), qs_kind)
-               END DO
+               IF(.NOT. calls==3) THEN
+               !# Lippert 1999, Eqn [22,23]
+                 DO ispin = 1, nspins
+                    CALL prj_scatter(cpc_h(ispin)%r_coef, cpc_ah(:, :, ispin), qs_kind)
+                    CALL prj_scatter(cpc_s(ispin)%r_coef, cpc_as(:, :, ispin), qs_kind)
+                 END DO
+               END IF
             END IF
 
             ! Total charge (hard-soft) at atom
@@ -260,6 +268,8 @@ CONTAINS
                                                      cpc_ah(:, :, ispin), nsotot, nsotot, nsotot) &
                                          -trace_r_AxB(mpole_gau%Qlm_gg(:, :, 1), nsotot, &
                                                       cpc_as(:, :, ispin), nsotot, nsotot, nsotot))/SQRT(fourpi)
+                  WRITE(143,*) " Total charge (hard-soft) at atom for ispin:",ispin, "is ", mpole_rho%Q0(ispin)
+                  FLUSH(143)
                END DO
             END IF
             ! Multipoles of local charge distribution
@@ -268,24 +278,27 @@ CONTAINS
                IF (paw_atom) THEN
                   mpole_rho%Qlm_h(iso) = 0.0_dp
                   mpole_rho%Qlm_s(iso) = 0.0_dp
-
-                  DO ispin = 1, nspins
-                     mpole_rho%Qlm_h(iso) = mpole_rho%Qlm_h(iso)+ &
-                                            trace_r_AxB(mpole_gau%Qlm_gg(:, :, iso), nsotot, &
-                                                        cpc_ah(:, :, ispin), nsotot, nsotot, nsotot)
-                     mpole_rho%Qlm_s(iso) = mpole_rho%Qlm_s(iso)+ &
-                                            trace_r_AxB(mpole_gau%Qlm_gg(:, :, iso), nsotot, &
-                                                        cpc_as(:, :, ispin), nsotot, nsotot, nsotot)
-                  END DO ! ispin
+                  IF(.NOT. calls==3) THEN
+                    DO ispin = 1, nspins
+                       mpole_rho%Qlm_h(iso) = mpole_rho%Qlm_h(iso)+ &
+                                              trace_r_AxB(mpole_gau%Qlm_gg(:, :, iso), nsotot, &
+                                                          cpc_ah(:, :, ispin), nsotot, nsotot, nsotot)
+                       mpole_rho%Qlm_s(iso) = mpole_rho%Qlm_s(iso)+ &
+                                              trace_r_AxB(mpole_gau%Qlm_gg(:, :, iso), nsotot, &
+                                                          cpc_as(:, :, ispin), nsotot, nsotot, nsotot)
+                    END DO ! ispin
+                  END IF
 
                   mpole_rho%Qlm_tot(iso) = mpole_rho%Qlm_tot(iso)+ &
                                            mpole_rho%Qlm_h(iso)-mpole_rho%Qlm_s(iso)
                END IF
 
+               !IF (.NOT. calls==3) THEN
+               !rho_0 radial grid with hard gaussian density coefficients
                rho0_atom_set(iatom)%rho0_rad_h%r_coef(1:nr, iso) = &
-                  g0_h(1:nr, l)*mpole_rho%Qlm_tot(iso)
+                    g0_h(1:nr, l)*mpole_rho%Qlm_tot(iso)
                rho0_atom_set(iatom)%vrho0_rad_h%r_coef(1:nr, iso) = &
-                  vg0_h(1:nr, l)*mpole_rho%Qlm_tot(iso)
+                    vg0_h(1:nr, l)*mpole_rho%Qlm_tot(iso)
 
                sum1 = 0.0_dp
                DO ir = 1, nr
@@ -293,12 +306,14 @@ CONTAINS
                          rho0_atom_set(iatom)%rho0_rad_h%r_coef(ir, iso)
                ENDDO
                rho0_h_tot = rho0_h_tot+sum1*harmonics%slm_int(iso)
+               !END IF
             END DO ! iso
             IF (paw_atom) THEN
                DEALLOCATE (cpc_ah, cpc_as)
             END IF
          END DO ! iat
       END IF
+
 
 !   Transform the coefficinets from spherical to cartesian
       IF (.NOT. paw_atom .AND. gapw_control%nopaw_as_gpw) THEN
@@ -461,6 +476,9 @@ CONTAINS
 
          IF (gapw_control%lrho1_eq_lrho0) harmonics%max_iso_not0 = &
             nsoset(rho0_mpole%lmax0_kind(ikind))
+! nsoset: Number of spherical orbitals up to the angular momentum quantum no. l
+! ncoset: Number of Cartesian orbitals up to the angular momentum quantum no. l
+! from aobasis/orbital_pointers 
 
          rho0_mpole%lmax_0 = MAX(rho0_mpole%lmax_0, rho0_mpole%lmax0_kind(ikind))
          rc_min = MIN(rc_min, rc_orb)
@@ -493,9 +511,10 @@ CONTAINS
       END DO ! ikind
       total_rho_core_rspace = -total_rho_core_rspace
 
-      IF (gapw_control%alpha0_hard_from_input) THEN
+      IF (gapw_control%alpha0_hard_from_input) THEN            !alpha0_hard_from_input is false if zero is passed in the input
 !   The Exponent for the compensation charge rho0_hard is read from input
          rho0_mpole%zet0_h = gapw_control%alpha0_hard
+         !WRITE(141,*) "zet0_h, alpha0_hard", rho0_mpole%zet0_h, gapw_control%alpha0_hard
       ELSE
 !   Calculate the exponent for the compensation charge rho0_hard
          rho0_mpole%zet0_h = 0.1_dp

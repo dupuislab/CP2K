@@ -225,7 +225,8 @@ CONTAINS
             pab(1:nch_ik, 1) = Qlm_c(1:nch_ik)
 
             ra(:) = pbc(particle_set(iatom)%r, cell)
-
+            !WRITE(112,*) "In put_rho0_on_grid(): Calling &
+            ! &collocate_pgf_product_rspace()"
             CALL collocate_pgf_product_rspace( &
                l0_ikind, zet0, 0, 0, 0.0_dp, 0, &
                ra, (/0.0_dp, 0.0_dp, 0.0_dp/), 0.0_dp, 1.0_dp, pab, 0, 0, &
@@ -244,6 +245,8 @@ CONTAINS
       DEALLOCATE (pab)
 
       IF (igrid /= auxbas_grid) THEN
+         !WRITE(112,*) "I am in put_rho0_on_grid()  where coeff_gspace%pw is& 
+         !     & placed on rho0_s_gs"
          CALL rs_pw_transfer(rs_grid, coeff_rspace%pw, rs2pw)
          CALL rs_grid_release(rs_grid)
          CALL pw_zero(rho0_s_gs%pw)
@@ -258,7 +261,7 @@ CONTAINS
          DEALLOCATE (coeff_rspace, coeff_gspace)
 
       ELSE
-
+         !WRITE(112,*) "I am in put_rho0_on_grid() after else"
          CALL pw_pool_create_pw(pw_pool, rho0_r_tmp%pw, &
                                 use_data=REALDATA3D, in_space=REALSPACE)
 

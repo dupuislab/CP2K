@@ -1,0 +1,1074 @@
+
+! **************************************************************************************************
+!> \brief Set occupation of molecular orbitals
+!> \par History
+!>      - module to calculate V_AB based on Farazdel, Dupuis, Clementi, Avram,JACS 1990
+!> \author  Pavan Behara
+! **************************************************************************************************
+
+MODULE vab
+   USE cp_blacs_env,                    ONLY: cp_blacs_env_type
+   USE cp_output_handling,              ONLY: cp_print_key_unit_nr
+   USE cp_control_types,                ONLY: dft_control_type
+   USE cp_para_types,                   ONLY: cp_para_env_type
+   USE qs_energy_types,                 ONLY: qs_energy_type
+   USE qs_ks_methods,                   ONLY: qs_ks_update_qs_env,&
+                                              calc_rho_tot_gspace
+   USE qs_ks_types,                     ONLY: qs_ks_did_change,&
+                                              get_ks_env,&
+                                              set_ks_env,&
+                                              qs_ks_env_type
+   USE qs_ks_utils,                     ONLY: print_densities
+   USE qs_neighbor_list_types,          ONLY: neighbor_list_set_p_type
+   USE qs_mo_types,                     ONLY: get_mo_set,&
+                                              mo_set_p_type
+   USE qs_rho_types,                    ONLY: qs_rho_type,&
+                                              qs_rho_set,&
+                                              qs_rho_get
+   USE qs_rho_methods,                  ONLY: qs_rho_update_rho, &
+                                              qs_rho_rebuild
+   USE input_section_types,             ONLY: section_vals_get,&
+                                              section_vals_get_subs_vals,&
+                                              section_vals_type,&
+                                              section_vals_val_get
+   USE cp_dbcsr_operations,             ONLY: copy_dbcsr_to_fm,&
+                                              copy_fm_to_dbcsr,&
+                                              cp_dbcsr_m_by_n_from_template
+   USE cp_fm_struct,                    ONLY: cp_fm_struct_create,&
+                                              cp_fm_struct_release,&
+                                              cp_fm_struct_type
+   USE cp_fm_types,                     ONLY: cp_fm_create,&
+                                              cp_fm_get_info,&
+                                              cp_fm_p_type,&
+                                              cp_fm_release,&
+                                              cp_fm_type,&
+                                              cp_fm_write_formatted,&
+                                              cp_fm_get_submatrix, &
+                                              cp_fm_set_submatrix
+   USE cp_fm_basic_linalg,              ONLY: cp_fm_transpose, &
+                                              cp_fm_scale_and_add
+   USE cp_log_handling,                 ONLY: cp_get_default_logger,&
+                                              cp_logger_type
+   USE dbcsr_api,                       ONLY: &
+        dbcsr_add, dbcsr_init_p, dbcsr_copy, dbcsr_create, dbcsr_filter, &
+        dbcsr_get_info, dbcsr_multiply, dbcsr_p_type, dbcsr_release, dbcsr_type, &
+        dbcsr_type_antisymmetric, dbcsr_type_symmetric, dbcsr_type_no_symmetry, &
+        dbcsr_desymmetrize, dbcsr_set 
+   USE cp_dbcsr_output,                 ONLY: cp_dbcsr_write_sparse_matrix
+   USE force_env_types,                 ONLY: force_env_get, force_env_type
+   USE kinds,                           ONLY: dp
+   USE pw_env_types,                    ONLY: pw_env_get,&
+                                              pw_env_type
+   USE pw_methods,                      ONLY: pw_axpy,&
+                                              pw_copy,&
+                                              pw_integral_ab,&
+                                              pw_integrate_function,&
+                                              pw_scale,&
+                                              pw_transfer,&
+                                              pw_zero
+   USE pw_poisson_methods,              ONLY: pw_poisson_solve
+   USE pw_poisson_types,                ONLY: pw_poisson_implicit,&
+                                              pw_poisson_type
+   USE pw_pool_types,                   ONLY: pw_pool_create_pw,&
+                                              pw_pool_give_back_pw,&
+                                              pw_pool_p_type,&
+                                              pw_pool_type
+   USE pw_types,                        ONLY: COMPLEXDATA1D,&
+                                              REALDATA3D,&
+                                              REALSPACE,&
+                                              RECIPROCALSPACE,&
+                                              pw_p_type,&
+                                              pw_release
+   USE qs_environment_types,            ONLY: get_qs_env,&
+                                              qs_environment_type
+   USE qs_core_energies,                ONLY: calculate_ptrace
+   USE qs_gapw_densities,               ONLY: prepare_gapw_den
+   USE hartree_local_methods,           ONLY: Vh_1c_gg_integrals
+   USE pw_poisson_methods,              ONLY: pw_poisson_rebuild
+   USE task_list_methods,               ONLY: generate_qs_task_list
+   USE task_list_types,                 ONLY: allocate_task_list,&
+                                              deallocate_task_list,&
+                                              task_list_type
+   USE qs_update_s_mstruct,             ONLY: qs_env_update_s_mstruct
+   USE qs_neighbor_lists,               ONLY: build_qs_neighbor_lists
+
+
+#include "./base/base_uses.f90"
+
+   IMPLICIT NONE
+
+   PRIVATE
+
+   CHARACTER(len=*), PARAMETER, PRIVATE :: moduleN = 'vab'
+
+   PUBLIC :: calculate_vab
+
+
+CONTAINS
+
+! **************************************************************************************************
+!> \brief  
+!>        
+!>
+!> \param 
+!> \param
+!> \date   
+!> \author
+!> \version 
+! **************************************************************************************************
+   SUBROUTINE calculate_vab(force_env)
+      TYPE(force_env_type), POINTER                      :: force_env
+      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_vab', &
+         routineP = moduleN//':'//routineN
+
+      INTEGER                                            :: nelectron_a_alfa, nelectron_a_beta, iw,&
+                                                            nelectron_b_alfa, nelectron_b_beta, &
+                                                            nao_a_alfa, nao_a_beta, &
+                                                            nao_b_alfa, nao_b_beta, &
+                                                            err_info, lwork, i, before, after, &
+                                                            nfullcols_total, nfullrows_total, &
+                                                            nblkrows_total, nblkcols_total, &
+                                                            nimgs, nspins
+      LOGICAL                                            :: omit_headers, gapw_xc, &
+                                                            skip_load_balance_distributed
+      TYPE(neighbor_list_set_p_type), DIMENSION(:), &
+         POINTER                                         :: sab_orb_sub
+
+      TYPE(cp_fm_type), POINTER                          :: mo_coeff_a_alfa, mo_coeff_a_beta,&
+                                                            mo_coeff_b_alfa, mo_coeff_b_beta, &
+                                                            matrix_s_fm, P_alfa_fm, P_beta_fm, &
+                                                            PA_hat_alfa_fm, PA_hat_beta_fm, &
+                                                            PB_hat_alfa_fm, PB_hat_beta_fm, &
+                                                            P_alfa_fm_sym, P_beta_fm_sym, &
+                                                            P_alfa_fm_asym, P_beta_fm_asym
+      TYPE(mo_set_p_type), DIMENSION(:), POINTER         :: mos_a, mos_b
+      TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: matrix_s, density_modified_sym, &
+                                                            density_modified_asym, rho_ao, & 
+                                                            density_modified_a, density_modified_b, &
+                                                            density_modified, ks_no_sym, &
+                                                            h_mat_no_sym, t_mat_no_sym
+      TYPE(dbcsr_p_type), DIMENSION(:, :), POINTER       :: rho_ao_kp, ks_mat_kp, h_mat_kp, t_mat_kp
+      TYPE(qs_environment_type), POINTER                 :: qs_env_a, qs_env_b
+      INTEGER                                            :: nforce_eval
+      TYPE(cp_logger_type), POINTER                      :: logger
+      TYPE(qs_ks_env_type), POINTER                      :: ks_env
+      TYPE(cp_fm_struct_type), POINTER                   :: fm_struct_tmp, fm_struct_tmp2
+      TYPE(cp_blacs_env_type), POINTER                   :: blacs_env
+      TYPE(cp_para_env_type), POINTER                    :: para_env
+      TYPE(qs_rho_type), POINTER                         :: rho 
+      REAL(kind=dp), DIMENSION(:,:), POINTER             :: matrix_tmp1, matrix_tmp2, &
+                                                            D_alfa, U_alfa, Vt_alfa, &
+                                                            D_beta, U_beta, Vt_beta, &
+                                                            A_alfa, A_beta, B_alfa, B_beta, &
+                                                            A_hat_alfa, B_hat_alfa, &
+                                                            A_hat_beta, B_hat_beta, &
+                                                            P_alfa, P_beta, &
+                                                            PA_hat_alfa, PA_hat_beta, &
+                                                            PB_hat_alfa, PB_hat_beta, &
+                                                            tmp1, tmp2, matrix_s_real
+      REAL(kind=dp), DIMENSION(:,:), POINTER             :: T_alfa, T_beta
+      REAL(kind=dp), DIMENSION(:), POINTER               :: diag_alfa, diag_beta, work
+      REAL(kind=dp)                                      :: d_prod_alfa, d_prod_beta, DH_prod, DT_prod,&
+                                                            core_energy, kinetic_energy, ehartree_pw, &
+                                                            ehartree_1c, exchange_energy
+      TYPE(dft_control_type), POINTER                    :: dft_control
+      TYPE(qs_energy_type), POINTER                      :: energy_a, energy_b
+      TYPE(pw_p_type)                                    :: rho_tot_gspace, v_hartree_gspace, v_hartree_rspace
+      TYPE(pw_p_type), POINTER                           :: rho_core, rho0_s_gs
+      TYPE(pw_pool_type), POINTER                        :: auxbas_pw_pool
+      TYPE(pw_env_type), POINTER                         :: pw_env
+      TYPE(pw_poisson_type), POINTER                     :: poisson_env
+      TYPE(task_list_type), POINTER                      :: task_list_sub
+
+
+
+
+      CPASSERT(ASSOCIATED(force_env))
+!Taking the molecular orbitals output of two states A and B
+      nforce_eval = SIZE(force_env%sub_force_env)
+      WRITE(124,*) "NFORCE_EVAL is ", nforce_eval
+      logger => cp_get_default_logger()
+      qs_env_a => force_env%sub_force_env(1)%force_env%qs_env
+      qs_env_b => force_env%sub_force_env(2)%force_env%qs_env
+      NULLIFY(mos_a, mos_b, energy_a, energy_b, ks_env, blacs_env, dft_control, para_env)
+      CALL get_qs_env(qs_env=qs_env_a, mos=mos_a, energy=energy_a)
+      CALL get_qs_env(qs_env=qs_env_b, mos=mos_b, energy=energy_b, &
+                      ks_env=ks_env, blacs_env=blacs_env,&
+                      dft_control=dft_control, para_env=para_env)
+      iw = cp_print_key_unit_nr(logger, qs_env_a%input,"DFT%SCF%PRINT%ITERATION_INFO", &
+                                   extension=".scfLog")
+
+      CALL get_mo_set(mos_a(1)%mo_set, mo_coeff=mo_coeff_a_alfa, nelectron=nelectron_a_alfa, nao=nao_a_alfa)
+      CALL get_mo_set(mos_a(2)%mo_set, mo_coeff=mo_coeff_a_beta, nelectron=nelectron_a_beta, nao=nao_a_beta)
+
+      CALL get_mo_set(mos_b(1)%mo_set, mo_coeff=mo_coeff_b_alfa, nelectron=nelectron_b_alfa, nao=nao_b_alfa)
+      CALL get_mo_set(mos_b(2)%mo_set, mo_coeff=mo_coeff_b_beta, nelectron=nelectron_b_beta, nao=nao_b_beta)
+
+
+      !overlap matrix = matrix_s
+      CALL get_ks_env(ks_env=ks_env, matrix_s=matrix_s)
+
+      CALL cp_fm_write_formatted(mo_coeff_a_alfa, iw,"mo_coeff_a_alfa")
+      CALL cp_fm_write_formatted(mo_coeff_a_beta, iw,"mo_coeff_a_beta")
+      CALL cp_fm_write_formatted(mo_coeff_b_alfa, iw,"mo_coeff_b_alfa")
+      CALL cp_fm_write_formatted(mo_coeff_b_beta, iw,"mo_coeff_b_beta")
+ 
+      CALL dbcsr_get_info(matrix_s(1)%matrix, nfullrows_total=nfullrows_total, &
+                         nfullcols_total=nfullcols_total, nblkrows_total=nblkrows_total, &
+                         nblkcols_total=nblkcols_total)
+      CALL cp_fm_struct_create(fm_struct_tmp, nrow_global=nfullrows_total, ncol_global=nfullcols_total, &
+                                nrow_block=nblkrows_total, ncol_block=nblkcols_total,&
+                                context=blacs_env, para_env=para_env)
+      CALL cp_fm_create(matrix_s_fm, matrix_struct=fm_struct_tmp)
+      CALL copy_dbcsr_to_fm(matrix_s(1)%matrix, matrix_s_fm)
+     
+      ALLOCATE(A_hat_alfa(nao_a_alfa, nelectron_a_alfa))
+      ALLOCATE(B_hat_alfa(nao_b_alfa, nelectron_b_alfa))
+      ALLOCATE(A_beta(nao_a_beta, nelectron_a_beta))
+      ALLOCATE(B_beta(nao_b_beta, nelectron_b_beta))
+      ALLOCATE(A_alfa(nao_a_alfa, nelectron_a_alfa))
+      ALLOCATE(B_alfa(nao_b_alfa, nelectron_b_alfa))
+      ALLOCATE(matrix_s_real(nao_a_alfa, nao_b_alfa))
+
+!!!!!!!!!!!!ALFA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      ALLOCATE(matrix_tmp1(nelectron_b_alfa, nao_b_alfa))
+      ALLOCATE(D_alfa(nelectron_a_alfa, nelectron_b_alfa))      
+
+      CALL cp_fm_get_submatrix(mo_coeff_a_alfa, A_alfa)
+      CALL cp_fm_get_submatrix(mo_coeff_b_alfa, B_alfa)
+      CALL cp_fm_get_submatrix(matrix_s_fm, matrix_s_real)
+
+      CALL dgemm("T", "N", nelectron_b_alfa, nao_a_alfa, nao_b_alfa, 1.0_dp, &
+                  B_alfa, nao_b_alfa, matrix_s_real, nao_a_alfa, 0.0_dp, matrix_tmp1, nelectron_b_alfa)
+      CALL dgemm("N", "N", nelectron_b_alfa, nelectron_a_alfa, nao_b_alfa, 1.0_dp, &
+                  matrix_tmp1, nelectron_b_alfa, A_alfa, nao_a_alfa, 0.0_dp, D_alfa, nelectron_a_alfa)
+      
+      ALLOCATE(U_alfa(SIZE(D_alfa,1),SIZE(D_alfa,1)))
+      ALLOCATE(Vt_alfa(SIZE(D_alfa,2), SIZE(D_alfa,2)))
+      ALLOCATE(diag_alfa(MIN(SIZE(D_alfa,1),SIZE(D_alfa,2))))
+
+      lwork = MAX(1,3*MIN(SIZE(D_alfa,1), SIZE(D_alfa,2))+&
+                      MAX(SIZE(D_alfa,1), SIZE(D_alfa,2)),&
+                      5*MIN(SIZE(D_alfa,1), SIZE(D_alfa,2)))
+      ALLOCATE(work(MAX(1,lwork)))
+
+     !!!matrix, svalues, mrow, ncol, uvec, vtvec
+
+      CALL dgesvd('A', 'A', SIZE(D_alfa,1), SIZE(D_alfa,2), D_alfa,&
+             SIZE(D_alfa,1), diag_alfa, U_alfa, SIZE(D_alfa,1), Vt_alfa, &
+             SIZE(D_alfa,2), work, lwork, err_info)
+     
+      CALL dgemm('N', 'T', nao_a_alfa, nelectron_a_alfa, nelectron_a_alfa, 1.0_dp, &
+                  A_alfa, nao_a_alfa, Vt_alfa, nelectron_a_alfa, 0.0_dp, A_hat_alfa, nao_a_alfa)
+      
+      CALL dgemm('N', 'N', nao_b_alfa, nelectron_b_alfa, nelectron_b_alfa, 1.0_dp, &
+                  B_alfa, nao_b_alfa, U_alfa, nelectron_b_alfa, 0.0_dp, B_hat_alfa, nao_b_alfa)
+
+      ALLOCATE(P_alfa(nao_a_alfa, nao_b_alfa))
+      ALLOCATE(T_alfa(SIZE(diag_alfa), SIZE(diag_alfa)))
+      ALLOCATE(tmp1(nao_a_alfa, nelectron_a_alfa))
+
+      CALL product_except_self(diag_alfa, T_alfa)
+     
+      CALL write_real_1dmatrix_to(diag_alfa, 124, "diag_alfa")
+      CALL write_real_2dmatrix_to(U_alfa, 124, "U_alfa") 
+      CALL write_real_2dmatrix_to(Vt_alfa, 124, "Vt_alfa")
+      CALL write_real_2dmatrix_to(A_hat_alfa, 124, "A_hat_alfa")
+      CALL write_real_2dmatrix_to(B_hat_alfa, 124, "B_hat_alfa")
+      CALL write_real_2dmatrix_to(T_alfa, 124, "T_alfa")
+      
+      CALL dgemm('N', 'N', nao_a_alfa, SIZE(T_alfa, 2), nelectron_a_alfa,  1.0_dp, &
+                  A_hat_alfa, nao_a_alfa, T_alfa, SIZE(T_alfa, 2), 0.0_dp, tmp1, nao_a_alfa)
+      CALL dgemm('N', 'T', nao_a_alfa, nao_b_alfa, nelectron_a_alfa,  1.0_dp,&
+                  tmp1, nao_a_alfa, B_hat_alfa, nao_b_alfa, 0.0_dp, P_alfa, nao_a_alfa)
+
+!!!!!!!!!!!!! BETA  !!!!!!!!!!!!!!
+      ALLOCATE(A_hat_beta(nao_a_beta, nelectron_a_beta))
+      ALLOCATE(B_hat_beta(nao_b_beta, nelectron_b_beta))
+      ALLOCATE(matrix_tmp2(nelectron_b_beta, nao_b_beta))
+      ALLOCATE(D_beta(nelectron_a_beta, nelectron_b_beta))
+
+      CALL cp_fm_get_submatrix(mo_coeff_a_beta, A_beta)
+      CALL cp_fm_get_submatrix(mo_coeff_b_beta, B_beta)
+
+      CALL dgemm("T", "N", nelectron_b_beta, nao_a_beta, nao_b_beta, 1.0_dp, &
+                  B_beta, nao_b_beta, matrix_s_real, nao_a_beta, 0.0_dp, matrix_tmp2, nelectron_b_beta)
+      CALL dgemm("N", "N", nelectron_b_beta, nelectron_a_beta, nao_b_beta, 1.0_dp, &
+                  matrix_tmp2, nelectron_b_beta, A_beta, nao_a_beta, 0.0_dp, D_beta, nelectron_a_beta)
+
+      ALLOCATE(U_beta(SIZE(D_beta,1),SIZE(D_beta,1)))
+      ALLOCATE(Vt_beta(SIZE(D_beta,2), SIZE(D_beta,2)))
+      ALLOCATE(diag_beta(MIN(SIZE(D_beta,1),SIZE(D_beta,2))))
+
+      lwork = MAX(1,3*MIN(SIZE(D_beta,1), SIZE(D_beta,2))+&
+                      MAX(SIZE(D_beta,1), SIZE(D_beta,2)),&
+                      5*MIN(SIZE(D_beta,1), SIZE(D_beta,2)))
+      DEALLOCATE(work)
+      ALLOCATE(work(MAX(1,lwork)))
+
+     !!!matrix, svalues, mrow, ncol, uvec, vtvec
+
+      CALL dgesvd('A', 'A', SIZE(D_beta,1), SIZE(D_beta,2), D_beta,&
+             SIZE(D_beta,1), diag_beta, U_beta, SIZE(D_beta,1), Vt_beta, &
+             SIZE(D_beta,2), work, lwork, err_info)
+
+      CALL dgemm('N', 'T', nao_a_beta, nelectron_a_beta, nelectron_a_beta, 1.0_dp, &
+                  A_beta, nao_a_beta, Vt_beta, nelectron_a_beta, 0.0_dp, A_hat_beta, nao_a_beta)
+
+      CALL dgemm('N', 'N', nao_b_beta, nelectron_b_beta, nelectron_b_beta, 1.0_dp, &
+                  B_beta, nao_b_beta, U_beta, nelectron_b_beta, 0.0_dp, B_hat_beta, nao_b_beta)
+
+      ALLOCATE(P_beta(nao_a_beta, nao_b_beta))
+      ALLOCATE(T_beta(SIZE(diag_beta), SIZE(diag_beta)))
+      ALLOCATE(tmp2(nao_a_beta, nelectron_a_beta))
+
+      CALL product_except_self(diag_beta, T_beta)
+
+      CALL write_real_1dmatrix_to(diag_beta, 124, "diag_beta")
+      CALL write_real_2dmatrix_to(U_beta, 124, "U_beta")
+      CALL write_real_2dmatrix_to(Vt_beta, 124, "Vt_beta")
+      CALL write_real_2dmatrix_to(A_hat_beta, 124, "A_hat_beta")
+      CALL write_real_2dmatrix_to(B_hat_beta, 124, "B_hat_beta")
+      CALL write_real_2dmatrix_to(T_beta, 124, "T_beta")
+
+      CALL dgemm('N', 'N', nao_a_beta, SIZE(T_beta, 2), nelectron_a_beta,  1.0_dp, &
+                  A_hat_beta, nao_a_beta, T_beta, SIZE(T_beta, 2), 0.0_dp, tmp2, nao_a_beta)
+      CALL dgemm('N', 'T', nao_a_beta, nao_b_beta, nelectron_a_beta,  1.0_dp,&
+                  tmp2, nao_a_beta, B_hat_beta, nao_b_beta, 0.0_dp, P_beta, nao_a_beta)
+
+      d_prod_alfa = PRODUCT(diag_alfa)
+      d_prod_beta = PRODUCT(diag_beta)
+      DH_prod = d_prod_alfa * d_prod_beta      
+      WRITE(124,*) "DH_PROD", DH_prod
+      P_alfa = d_prod_beta * P_alfa
+      P_beta = d_prod_alfa * P_beta
+
+      CALL write_real_2dmatrix_to(P_alfa, 124, "P_alfa")
+      CALL write_real_2dmatrix_to(P_beta, 124, "P_beta")
+
+!!!!!!!!!! MODIFIED DENSITY IS IN REAL(:,:) MATRICES, HAVE TO CONVERT THEM TO
+!CP2K FORMATS
+!CREATING A FULL MATRIX STRUCTURE AND THEN COPYING TO DBCSR FORMAT
+
+      CALL dbcsr_get_info(mos_b(1)%mo_set%mo_coeff_b, nfullrows_total=nfullrows_total, &
+                         nfullcols_total=nfullcols_total, nblkrows_total=nblkrows_total, &
+                         nblkcols_total=nblkcols_total)
+      CALL cp_fm_struct_create(fm_struct_tmp2, nrow_global=nfullrows_total, ncol_global=nfullcols_total, &
+                                nrow_block=nblkrows_total, ncol_block=nblkcols_total,&
+                                context=blacs_env, para_env=para_env)
+
+      CALL cp_fm_create(P_alfa_fm, matrix_struct=fm_struct_tmp2) 
+      CALL cp_fm_create(P_beta_fm, matrix_struct=fm_struct_tmp2)
+      
+      CALL cp_fm_set_submatrix(P_alfa_fm, P_alfa)
+      CALL cp_fm_set_submatrix(P_beta_fm, P_beta)
+
+      
+      CALL cp_fm_write_formatted(P_alfa_fm, iw,"P_alfa_fullmatrix")
+      CALL cp_fm_write_formatted(P_beta_fm, iw,"P_beta_fullmatrix") 
+      
+!#################  Checking E_A is same before and after transformation  ################# 
+      NULLIFY(density_modified_a, rho, rho_ao_kp)
+      nspins = dft_control%nspins
+      nimgs  = dft_control%nimages
+      gapw_xc = dft_control%qs_control%gapw_xc
+
+      
+      IF(iw>0) WRITE(iw,*) "####### CHECKS ON A and B #######"
+      IF(iw>0) WRITE(iw,*) " E_A before:", energy_a%total
+      IF(iw>0) WRITE(iw,*) " E_B before:", energy_b%total
+      IF(iw>0) WRITE(iw,*) "####### - #######"
+
+      ALLOCATE(PA_hat_alfa(nao_a_alfa, nao_a_alfa))
+      ALLOCATE(PA_hat_beta(nao_a_beta, nao_a_beta))
+      CALL dgemm('N', 'T', nao_a_alfa, nao_a_alfa, nelectron_a_alfa, 1.0_dp, &
+                  A_hat_alfa, nao_a_alfa, A_hat_alfa, nao_a_alfa, 0.0_dp, PA_hat_alfa, nao_a_alfa)
+      CALL dgemm('N', 'T', nao_a_beta, nao_a_beta, nelectron_a_beta, 1.0_dp, &
+                  A_hat_beta, nao_a_beta, A_hat_beta, nao_a_beta, 0.0_dp, PA_hat_beta, nao_a_beta)
+      WRITE(124, *) "############ CHEKCING E_A ############"
+      CALL write_real_2dmatrix_to(PA_hat_alfa, 124, "PA_hat_alfa")
+      CALL write_real_2dmatrix_to(PA_hat_beta, 124, "PA_hat_beta")
+
+      CALL cp_fm_create(PA_hat_alfa_fm, matrix_struct=fm_struct_tmp2)
+      CALL cp_fm_create(PA_hat_beta_fm, matrix_struct=fm_struct_tmp2)
+
+      CALL cp_fm_set_submatrix(PA_hat_alfa_fm, PA_hat_alfa)
+      CALL cp_fm_set_submatrix(PA_hat_beta_fm, PA_hat_beta)
+
+
+      CALL cp_fm_write_formatted(PA_hat_alfa_fm, iw,"PA_hat_alfa_fullmatrix")
+      CALL cp_fm_write_formatted(PA_hat_beta_fm, iw,"PA_hat_beta_fullmatrix")
+
+
+      CALL get_qs_env(qs_env_b, rho=rho)
+      CALL qs_rho_get(rho, rho_ao=rho_ao, rho_ao_kp=rho_ao_kp)
+
+      ALLOCATE(density_modified_a(2))
+      CALL dbcsr_init_p(density_modified_a(1)%matrix)
+      CALL dbcsr_create(density_modified_a(1)%matrix, &
+                          template=rho_ao(1)%matrix, &
+                          name="PA_hat_alfa", &
+                          matrix_type=dbcsr_type_symmetric)
+      CALL dbcsr_init_p(density_modified_a(2)%matrix)
+      CALL dbcsr_create(density_modified_a(2)%matrix, &
+                          template=rho_ao(2)%matrix, &
+                          name="PA_hat_beta", &
+                          matrix_type=dbcsr_type_symmetric)
+
+      CALL copy_fm_to_dbcsr(PA_hat_alfa_fm, density_modified_a(1)%matrix)
+      CALL copy_fm_to_dbcsr(PA_hat_beta_fm, density_modified_a(2)%matrix)
+      rho_ao_kp(1:nspins, 1:1) => density_modified_a(1:nspins)
+      rho_ao => density_modified_a
+      CALL qs_rho_set(rho, rho_ao=rho_ao, rho_ao_kp=rho_ao_kp)
+      CALL qs_rho_update_rho(rho, qs_env=qs_env_b)
+      CALL qs_ks_did_change(ks_env, rho_changed=.TRUE., potential_changed=.TRUE.)
+      CALL qs_ks_update_qs_env(qs_env_b, just_energy=.TRUE., &
+                               calculate_forces=.FALSE.)
+
+      IF(iw>0) WRITE(iw,*) "CHECK ON A IS DONE, E_A after passing modified PA_hat density:", energy_a%total
+      
+!#################  Checking E_B is same before and after transformation  #################
+      NULLIFY(density_modified_b)
+      ALLOCATE(PB_hat_alfa(nao_b_alfa, nao_b_alfa))
+      ALLOCATE(PB_hat_beta(nao_b_beta, nao_b_beta))
+      CALL dgemm('N', 'T', nao_b_alfa, nao_b_alfa, nelectron_b_alfa, 1.0_dp, &
+                  B_hat_alfa, nao_b_alfa, B_hat_alfa, nao_b_alfa, 0.0_dp, PB_hat_alfa, nao_b_alfa)
+      CALL dgemm('N', 'T', nao_b_beta, nao_b_beta, nelectron_b_beta, 1.0_dp, &
+                  B_hat_beta, nao_b_beta, B_hat_beta, nao_b_beta, 0.0_dp, PB_hat_beta, nao_b_beta)
+      WRITE(124, *) "############ CHEKCING E_B ############"
+      CALL write_real_2dmatrix_to(PB_hat_alfa, 124, "PB_hat_alfa")
+      CALL write_real_2dmatrix_to(PB_hat_beta, 124, "PB_hat_beta")
+
+      CALL cp_fm_create(PB_hat_alfa_fm, matrix_struct=fm_struct_tmp2)
+      CALL cp_fm_create(PB_hat_beta_fm, matrix_struct=fm_struct_tmp2)
+
+      CALL cp_fm_set_submatrix(PB_hat_alfa_fm, PB_hat_alfa)
+      CALL cp_fm_set_submatrix(PB_hat_beta_fm, PB_hat_beta)
+
+
+      CALL cp_fm_write_formatted(PB_hat_alfa_fm, iw,"PB_hat_alfa_fullmatrix")
+      CALL cp_fm_write_formatted(PB_hat_beta_fm, iw,"PB_hat_beta_fullmatrix")
+
+      CALL get_qs_env(qs_env_b, rho=rho)
+      CALL qs_rho_get(rho, rho_ao=rho_ao, rho_ao_kp=rho_ao_kp)
+
+      ALLOCATE(density_modified_b(2))
+      CALL dbcsr_init_p(density_modified_b(1)%matrix)
+      CALL dbcsr_create(density_modified_b(1)%matrix, &
+                          template=rho_ao(1)%matrix, &
+                          name="PB_hat_alfa", &
+                          matrix_type=dbcsr_type_symmetric)
+      CALL dbcsr_init_p(density_modified_b(2)%matrix)
+      CALL dbcsr_create(density_modified_b(2)%matrix, &
+                          template=rho_ao(2)%matrix, &
+                          name="PB_hat_beta", &
+                          matrix_type=dbcsr_type_symmetric)
+      CALL copy_fm_to_dbcsr(PB_hat_alfa_fm, density_modified_b(1)%matrix)
+      CALL copy_fm_to_dbcsr(PB_hat_beta_fm, density_modified_b(2)%matrix)
+      rho_ao_kp(1:nspins, 1:1) => density_modified_b(1:nspins)
+      rho_ao => density_modified_b
+      CALL qs_rho_set(rho, rho_ao=rho_ao, rho_ao_kp=rho_ao_kp)
+      CALL qs_rho_update_rho(rho, qs_env=qs_env_b)
+      IF(iw>0) WRITE(iw,*) "rho_print 1"
+      !IF(iw>0) WRITE(iw,*) "rho_tot_gspace at print 1",REAL(rho_tot_gspace%pw%cc(1))
+      CALL cp_dbcsr_write_sparse_matrix(rho_ao_kp(1, 1)%matrix, 4,12,qs_env_b, para_env, &
+                                     output_unit=iw,omit_headers=omit_headers)
+      CALL qs_ks_did_change(ks_env, rho_changed=.TRUE., potential_changed=.TRUE.)
+      CALL get_qs_env(qs_env=qs_env_b, rho0_s_gs=rho0_s_gs)
+      WRITE(140,*) "writing rho0_s_gs before ks_update",rho0_s_gs%pw%cc(1)
+      CALL qs_ks_update_qs_env(qs_env_b, just_energy=.TRUE., &
+                               calculate_forces=.FALSE.)
+      
+      IF(iw>0) WRITE(iw,*) "CHECK ON B IS DONE, E_B after passing modified PB_hat density:", energy_b%total
+      IF(iw>0) WRITE(iw,*) "rho_print 2"
+      WRITE(140,*) "writing rho0_s_gs at end of EB check",rho0_s_gs%pw%cc(1)
+
+
+
+
+!#################
+!#################  Doing symmetric part
+!#################
+
+      NULLIFY(density_modified_sym)
+
+      CALL get_qs_env(qs_env_b, rho=rho)
+      CALL qs_rho_get(rho, rho_ao=rho_ao, rho_ao_kp=rho_ao_kp)
+
+      ALLOCATE(density_modified_sym(2))
+      CALL dbcsr_init_p(density_modified_sym(1)%matrix)
+      CALL dbcsr_create(density_modified_sym(1)%matrix, &
+                          template=rho_ao(1)%matrix, &
+                          name="P_AB symmetric alfa", &
+                          matrix_type=dbcsr_type_symmetric)
+      CALL dbcsr_init_p(density_modified_sym(2)%matrix)
+      CALL dbcsr_create(density_modified_sym(2)%matrix, &
+                          template=rho_ao(2)%matrix, &
+                          name="P_AB symmetric beta", &
+                          matrix_type=dbcsr_type_symmetric)
+
+      CALL cp_fm_create(P_alfa_fm_sym, matrix_struct=fm_struct_tmp2)
+      CALL cp_fm_create(P_beta_fm_sym, matrix_struct=fm_struct_tmp2)
+      CALL cp_fm_transpose(P_alfa_fm, P_alfa_fm_sym)
+      CALL cp_fm_transpose(P_beta_fm, P_beta_fm_sym)
+      CALL cp_fm_scale_and_add(0.5_dp, P_alfa_fm_sym, 0.5_dp, P_alfa_fm)
+      CALL cp_fm_scale_and_add(0.5_dp, P_beta_fm_sym, 0.5_dp, P_beta_fm)
+      CALL copy_fm_to_dbcsr(P_alfa_fm_sym, density_modified_sym(1)%matrix)
+      CALL copy_fm_to_dbcsr(P_beta_fm_sym, density_modified_sym(2)%matrix)
+
+      rho_ao_kp(1:nspins, 1:1) => density_modified_sym(1:nspins)
+      rho_ao => density_modified_sym
+      CALL qs_rho_set(rho, rho_ao=rho_ao, rho_ao_kp=rho_ao_kp)
+      CALL section_vals_val_get(qs_env_b%input, "DFT%PRINT%AO_MATRICES%OMIT_HEADERS",l_val=omit_headers)
+      CALL section_vals_val_get(qs_env_b%input,"DFT%PRINT%AO_MATRICES%NDIGITS",i_val=after)
+      after=MIN(MAX(after,1),16)
+      before=2
+      CALL cp_dbcsr_write_sparse_matrix(density_modified_sym(1)%matrix, before, after, qs_env_b, para_env, &
+                                     output_unit=iw, omit_headers=omit_headers)
+      CALL cp_dbcsr_write_sparse_matrix(rho_ao(1)%matrix, before,after,qs_env_b, para_env, &
+                                     output_unit=iw, omit_headers=omit_headers)
+      CALL cp_dbcsr_write_sparse_matrix(rho_ao_kp(1,1)%matrix, before,after,qs_env_b, para_env, &
+                                     output_unit=iw, omit_headers=omit_headers)
+
+      CALL cp_dbcsr_write_sparse_matrix(density_modified_sym(2)%matrix, before, after,qs_env_b, para_env, &
+                                     output_unit=iw, omit_headers=omit_headers)
+
+      CALL qs_rho_update_rho(rho, qs_env=qs_env_b)
+      CALL qs_ks_did_change(ks_env, rho_changed=.TRUE., potential_changed=.TRUE.)
+      CALL qs_ks_update_qs_env(qs_env_b, just_energy=.TRUE., &
+                                     calculate_forces=.FALSE., calc_vab=.TRUE.)
+      WRITE(141,*) "######### AB ENERGIES #########"
+      WRITE(141,*) "1. Core Hamiltonian (T+V)", energy_b%core
+      WRITE(141,*) "1.a Kinetic energy T     ", energy_b%kinetic
+      WRITE(141,*) "1.b PP non local   V     ", energy_b%core - energy_b%kinetic
+      WRITE(141,*) "2.1 Hartree pw           ", energy_b%hartree
+      WRITE(141,*) "2.2 Hartree 1centered    ", energy_b%hartree_1c
+      WRITE(141,*) "3. Exchange              ", energy_b%ex
+      WRITE(141,*) "4. Self energy           ", energy_b%core_self
+
+      WRITE(141,*) "J2_AB is ", (energy_b%hartree + energy_b%hartree_1c)*DT_prod/DH_prod
+      WRITE(141,*) "K2_AB is ", energy_b%ex*DT_prod/DH_prod
+     
+      STOP 'in vab' 
+
+!#################  Checking E_B desymmetrizing all matrices  #################
+!      NULLIFY(density_modified_b, ks_mat_kp, h_mat_kp, t_mat_kp)
+!      DEALLOCATE(PB_hat_alfa, PB_hat_beta)
+!      ALLOCATE(PB_hat_alfa(nao_b_alfa, nao_b_alfa))
+!      ALLOCATE(PB_hat_beta(nao_b_beta, nao_b_beta))
+!      CALL dgemm('N', 'T', nao_b_alfa, nao_b_alfa, nelectron_b_alfa, 1.0_dp, &
+!                  B_hat_alfa, nao_b_alfa, B_hat_alfa, nao_b_alfa, 0.0_dp, PB_hat_alfa, nao_b_alfa)
+!      CALL dgemm('N', 'T', nao_b_beta, nao_b_beta, nelectron_b_beta, 1.0_dp, &
+!                  B_hat_beta, nao_b_beta, B_hat_beta, nao_b_beta, 0.0_dp, PB_hat_beta, nao_b_beta)
+!      CALL write_real_2dmatrix_to(PB_hat_alfa, 124, "PB_hat_alfa")
+!      CALL write_real_2dmatrix_to(PB_hat_beta, 124, "PB_hat_beta")
+!
+!      CALL cp_fm_create(PB_hat_alfa_fm, matrix_struct=fm_struct_tmp2)
+!      CALL cp_fm_create(PB_hat_beta_fm, matrix_struct=fm_struct_tmp2)
+!
+!      CALL cp_fm_set_submatrix(PB_hat_alfa_fm, PB_hat_alfa)
+!      CALL cp_fm_set_submatrix(PB_hat_beta_fm, PB_hat_beta)
+!
+!
+!      CALL cp_fm_write_formatted(PB_hat_alfa_fm, iw,"PB_hat_alfa_fullmatrix")
+!      CALL cp_fm_write_formatted(PB_hat_beta_fm, iw,"PB_hat_beta_fullmatrix")
+!
+!      CALL get_qs_env(qs_env_b, rho=rho, rho_core=rho_core)
+!      CALL qs_rho_get(rho, rho_ao=rho_ao, rho_ao_kp=rho_ao_kp)
+!
+!      ALLOCATE(density_modified_b(2))
+!      CALL dbcsr_init_p(density_modified_b(1)%matrix)
+!      CALL dbcsr_create(density_modified_b(1)%matrix, &
+!                          template=rho_ao(1)%matrix, &
+!                          name="PB_hat_alfa", &
+!                          matrix_type=dbcsr_type_no_symmetry)
+!      CALL dbcsr_init_p(density_modified_b(2)%matrix)
+!      CALL dbcsr_create(density_modified_b(2)%matrix, &
+!                          template=rho_ao(2)%matrix, &
+!                          name="PB_hat_beta", &
+!                          matrix_type=dbcsr_type_no_symmetry)
+!
+!      CALL get_qs_env(qs_env_b, pw_env=pw_env)
+!      CALL pw_env_get(pw_env, auxbas_pw_pool=auxbas_pw_pool, poisson_env=poisson_env)
+!      WRITE(140,*) "writing rho0_s_gs before prepare_gapw_den call",rho0_s_gs%pw%cc(1)
+!      CALL pw_pool_create_pw(auxbas_pw_pool, &
+!                                     v_hartree_gspace%pw, &
+!                                     use_data=COMPLEXDATA1D, &
+!                                     in_space=RECIPROCALSPACE)
+!      CALL pw_pool_create_pw(auxbas_pw_pool, &
+!                                     rho_tot_gspace%pw, &
+!                                     use_data=COMPLEXDATA1D, &
+!                                     in_space=RECIPROCALSPACE)
+!      CALL pw_zero(rho_tot_gspace%pw)
+!      CALL pw_zero(v_hartree_gspace%pw)
+!      CALL calc_rho_tot_gspace(rho_tot_gspace, qs_env_b, rho)
+!      IF(iw>0) WRITE(iw,*) "rho_print 3"
+!      CALL cp_dbcsr_write_sparse_matrix(rho_ao_kp(1, 1)%matrix, 4,12,qs_env_b,para_env, &
+!                                     output_unit=iw,omit_headers=omit_headers)
+!      WRITE(140,*) "rho_tot_gspace at print 3", rho_tot_gspace%pw%cc(1)
+!      WRITE(140,*) "writing rho0_s_gs before poisson call",rho0_s_gs%pw%cc(1)
+!      CALL pw_poisson_solve(poisson_env, rho_tot_gspace%pw, ehartree_pw, &
+!                                  v_hartree_gspace%pw,rho_core=rho_core,iw=iw)
+!      WRITE(140,*) "writing rho0_s_gs after poisson call",rho0_s_gs%pw%cc(1)
+!      !CALL Vh_1c_gg_integrals(qs_env_b, ehartree_1c, calls=2)
+!      CALL copy_fm_to_dbcsr(PB_hat_alfa_fm, density_modified_b(1)%matrix)
+!      CALL copy_fm_to_dbcsr(PB_hat_beta_fm, density_modified_b(2)%matrix)
+!      rho_ao_kp(1:nspins, 1:1) => density_modified_b(1:nspins)
+!      rho_ao => density_modified_b
+!      CALL qs_rho_set(rho, rho_ao=rho_ao, rho_ao_kp=rho_ao_kp)
+!      CALL qs_rho_update_rho(rho, qs_env=qs_env_b)
+!      WRITE(140,*) "writing rho0_s_gs after rho update",rho0_s_gs%pw%cc(1)
+!      CALL qs_ks_did_change(ks_env, rho_changed=.TRUE., potential_changed=.FALSE.)
+!      WRITE(140,*) "ehartree_pw after call to poisson_solve in vab", ehartree_pw
+!      ehartree_pw = 0.5_dp*pw_integral_ab(rho_tot_gspace%pw, v_hartree_gspace%pw)
+!      !CALL prepare_gapw_den(qs_env_b, do_rho0=(.NOT. gapw_xc),calls=2)
+!      CALL Vh_1c_gg_integrals(qs_env_b, ehartree_1c, calls=2)
+!      WRITE(140,*) "ehartree_pw calculated in vab with modified density", ehartree_pw
+!
+!      ALLOCATE(ks_no_sym(2))      
+!      CALL dbcsr_init_p(ks_no_sym(1)%matrix)
+!      CALL dbcsr_create(ks_no_sym(1)%matrix, &
+!                          template=rho_ao(1)%matrix, &
+!                          name="KS_new_no_sym_alfa", &
+!                          matrix_type=dbcsr_type_no_symmetry)
+!      CALL dbcsr_init_p(ks_no_sym(2)%matrix)
+!      CALL dbcsr_create(ks_no_sym(2)%matrix, &
+!                          template=rho_ao(1)%matrix, &
+!                          name="KS_new_no_sym_beta", &
+!                          matrix_type=dbcsr_type_no_symmetry)
+!      
+!      CALL get_ks_env(ks_env, matrix_ks_kp=ks_mat_kp, matrix_h_kp=h_mat_kp, kinetic_kp=t_mat_kp)
+!      ALLOCATE(h_mat_no_sym(1))
+!      CALL dbcsr_init_p(h_mat_no_sym(1)%matrix)
+!      CALL dbcsr_create(h_mat_no_sym(1)%matrix, &
+!                          template=rho_ao(1)%matrix, &
+!                          name="H_coreHamiltonian_no_sym", &
+!                          matrix_type=dbcsr_type_no_symmetry)
+!      ALLOCATE(t_mat_no_sym(1))
+!      CALL dbcsr_init_p(t_mat_no_sym(1)%matrix)
+!      CALL dbcsr_create(t_mat_no_sym(1)%matrix, &
+!                          template=rho_ao(1)%matrix, &
+!                          name="Kinetic_matrix_no_sym", &
+!                          matrix_type=dbcsr_type_no_symmetry)
+!
+!      CALL dbcsr_desymmetrize(h_mat_kp(1,1)%matrix, h_mat_no_sym(1)%matrix)
+!      CALL dbcsr_desymmetrize(t_mat_kp(1,1)%matrix, t_mat_no_sym(1)%matrix)
+!      h_mat_kp(1,1)%matrix => h_mat_no_sym(1)%matrix
+!      t_mat_kp(1,1)%matrix => t_mat_no_sym(1)%matrix
+!      CALL dbcsr_desymmetrize(ks_mat_kp(1,1)%matrix, ks_no_sym(1)%matrix)
+!      CALL dbcsr_desymmetrize(ks_mat_kp(2,1)%matrix, ks_no_sym(2)%matrix)
+!      ks_mat_kp(1:nspins, 1:1) => ks_no_sym(1:nspins)
+!      CALL set_ks_env(ks_env, matrix_ks=ks_no_sym, matrix_h=h_mat_no_sym, &
+!                      kinetic=t_mat_no_sym, s_mstruct_changed=.TRUE.)
+!     !!! Core Hamiltonian potential and kinetic energies !!!
+!      CALL calculate_ptrace(h_mat_kp, rho_ao_kp, core_energy, dft_control%nspins) 
+!      CALL calculate_ptrace(t_mat_kp, rho_ao_kp, kinetic_energy, dft_control%nspins)
+!      WRITE(140,*) "######### ENERGIES #########"
+!      WRITE(140,*) "1. Core Hamiltonian (T+V)", core_energy
+!      WRITE(140,*) "1.a Kinetic energy T     ", kinetic_energy
+!      WRITE(140,*) "1.b PP non local   V     ", core_energy - kinetic_energy
+!      WRITE(140,*) "2.1 Hartree pw           ", ehartree_pw
+!      WRITE(140,*) "2.2 Hartree 1centered    ", ehartree_1c
+!      WRITE(140,*) "3. Exchange              "
+!      WRITE(140,*) "4. Self energy           "
+!      CALL pw_release(rho_tot_gspace%pw)
+!      CALL pw_release(v_hartree_gspace%pw)
+!      CALL dbcsr_release(ks_no_sym(1)%matrix)
+!      CALL dbcsr_release(h_mat_no_sym(1)%matrix)
+!      CALL dbcsr_release(t_mat_no_sym(1)%matrix)
+!      DEALLOCATE(ks_no_sym, h_mat_no_sym, t_mat_no_sym)
+!      IF(iw>0) WRITE(iw,*) "CHECK ON B IS DONE, E_B after passing modified PB_hat density:", energy_b%total
+!
+!#################
+!#################  Doing the AB part by splitting modified density into symmetric and asymmetric
+!#################  parts and then adding them up in case of 1e contributions
+!#################  (2e may contain S*S + S*A + A*S + A*A) and anyways 2 e can
+!#################  be done with the primitive integrals and KLASS attribute 
+!#################
+
+!#################
+!#################  Doing no symmetry way
+!#################
+!
+!      NULLIFY(density_modified)
+!
+!      CALL get_qs_env(qs_env_b, rho=rho)
+!!      CALL qs_rho_get(rho, rho_ao=rho_ao, rho_ao_kp=rho_ao_kp)
+!!      ALLOCATE(density_modified(2))
+!!      CALL dbcsr_init_p(density_modified(1)%matrix)
+!!      CALL dbcsr_create(density_modified(1)%matrix, &
+!!                          template=rho_ao(1)%matrix, &
+!!                          name="P_AB full alfa", &
+!!                          matrix_type=dbcsr_type_no_symmetry)
+!!      CALL dbcsr_init_p(density_modified(2)%matrix)
+!!      CALL dbcsr_create(density_modified(2)%matrix, &
+!!                          template=rho_ao(2)%matrix, &
+!!                          name="P_AB full beta", &
+!!                          matrix_type=dbcsr_type_no_symmetry)
+!!
+!!      CALL copy_fm_to_dbcsr(P_alfa_fm, density_modified(1)%matrix)
+!!      CALL copy_fm_to_dbcsr(P_beta_fm, density_modified(2)%matrix)
+!!
+!!      rho_ao_kp(1:nspins, 1:1) => density_modified(1:nspins)
+!!      rho_ao => density_modified
+!!      CALL qs_rho_set(rho, rho_ao=rho_ao, rho_ao_kp=rho_ao_kp)
+!!      CALL section_vals_val_get(qs_env_b%input, "DFT%PRINT%AO_MATRICES%OMIT_HEADERS",l_val=omit_headers)
+!!      CALL section_vals_val_get(qs_env_b%input,"DFT%PRINT%AO_MATRICES%NDIGITS",i_val=after)
+!!      after=MIN(MAX(after,1),16)
+!!      before=2
+!!      CALL cp_dbcsr_write_sparse_matrix(density_modified(1)%matrix, before, after, qs_env_b, para_env, &
+!!                                     output_unit=iw, omit_headers=omit_headers)
+!!      CALL cp_dbcsr_write_sparse_matrix(rho_ao(1)%matrix, before,after,qs_env_b, para_env, &
+!!                                     output_unit=iw, omit_headers=omit_headers)
+!!      CALL cp_dbcsr_write_sparse_matrix(rho_ao_kp(1,1)%matrix, before,after,qs_env_b, para_env, &
+!!                                     output_unit=iw, omit_headers=omit_headers)
+!!
+!!      CALL cp_dbcsr_write_sparse_matrix(density_modified(2)%matrix, before, after,qs_env_b, para_env, &
+!!                                     output_unit=iw, omit_headers=omit_headers)
+!!
+!!      CALL qs_rho_update_rho(rho, qs_env=qs_env_b)
+!!      CALL qs_ks_did_change(ks_env, rho_changed=.TRUE., potential_changed=.TRUE.)
+!!      CALL qs_ks_update_qs_env(qs_env_b, just_energy=.TRUE., &
+!!                                     calculate_forces=.FALSE., calc_vab=.TRUE.)
+!
+!
+!!!#################
+!!!#################  Doing symmetric part of P_AB modified density (P+P^T)/2
+!!!#################
+!!
+!      NULLIFY(density_modified_sym)
+!      
+!      CALL get_qs_env(qs_env_b, rho=rho)
+!      CALL qs_rho_get(rho, rho_ao=rho_ao, rho_ao_kp=rho_ao_kp)
+!
+!      ALLOCATE(density_modified_sym(2))
+!      CALL dbcsr_init_p(density_modified_sym(1)%matrix)
+!      CALL dbcsr_create(density_modified_sym(1)%matrix, &
+!                          template=rho_ao(1)%matrix, &
+!                          name="P_AB symmetric alfa", &
+!                          matrix_type=dbcsr_type_symmetric)
+!      CALL dbcsr_init_p(density_modified_sym(2)%matrix)
+!      CALL dbcsr_create(density_modified_sym(2)%matrix, &
+!                          template=rho_ao(2)%matrix, &
+!                          name="P_AB symmetric beta", &
+!                          matrix_type=dbcsr_type_symmetric)
+!
+!      CALL cp_fm_create(P_alfa_fm_sym, matrix_struct=fm_struct_tmp2)
+!      CALL cp_fm_create(P_beta_fm_sym, matrix_struct=fm_struct_tmp2)
+!      CALL cp_fm_transpose(P_alfa_fm, P_alfa_fm_sym)
+!      CALL cp_fm_transpose(P_beta_fm, P_beta_fm_sym)
+!      !!! (P+P^T)/2
+!      CALL cp_fm_scale_and_add(0.5_dp, P_alfa_fm_sym, 0.5_dp, P_alfa_fm) 
+!      CALL cp_fm_scale_and_add(0.5_dp, P_beta_fm_sym, 0.5_dp, P_beta_fm)
+!      CALL copy_fm_to_dbcsr(P_alfa_fm_sym, density_modified_sym(1)%matrix)
+!      CALL copy_fm_to_dbcsr(P_beta_fm_sym, density_modified_sym(2)%matrix)
+!      !!! POinting rho to the new symmetric part of modified density
+!      rho_ao_kp(1:nspins, 1:1) => density_modified_sym(1:nspins)
+!      rho_ao => density_modified_sym
+!      CALL qs_rho_set(rho, rho_ao=rho_ao, rho_ao_kp=rho_ao_kp)
+!      CALL section_vals_val_get(qs_env_b%input, "DFT%PRINT%AO_MATRICES%OMIT_HEADERS",l_val=omit_headers)
+!      CALL section_vals_val_get(qs_env_b%input,"DFT%PRINT%AO_MATRICES%NDIGITS",i_val=after)
+!      after=MIN(MAX(after,1),16)
+!      before=2
+!      CALL cp_dbcsr_write_sparse_matrix(density_modified_sym(1)%matrix, before, after, qs_env_b, para_env, &
+!                                     output_unit=iw, omit_headers=omit_headers)
+!      CALL cp_dbcsr_write_sparse_matrix(rho_ao(1)%matrix, before,after,qs_env_b, para_env, &
+!                                     output_unit=iw, omit_headers=omit_headers)
+!      CALL cp_dbcsr_write_sparse_matrix(rho_ao_kp(1,1)%matrix, before,after,qs_env_b, para_env, &
+!                                     output_unit=iw, omit_headers=omit_headers)
+!
+!      CALL cp_dbcsr_write_sparse_matrix(density_modified_sym(2)%matrix, before, after,qs_env_b, para_env, &
+!                                     output_unit=iw, omit_headers=omit_headers)
+!
+!      CALL qs_rho_update_rho(rho, qs_env=qs_env_b)
+!      CALL qs_ks_did_change(ks_env, rho_changed=.TRUE., potential_changed=.TRUE.)
+!      CALL qs_ks_update_qs_env(qs_env_b, just_energy=.TRUE., &
+!                                     calculate_forces=.FALSE.)
+!
+!      !!!! Now hartree potential is obtained with symmetric part of modified density
+!      !!!! Have to take the hartree potential and obtain energies with 
+!      !!!! modified full density which is non-symmetric
+!
+!      NULLIFY(density_modified, ks_mat_kp, h_mat_kp, t_mat_kp)
+!      CALL get_qs_env(qs_env_b, rho=rho)
+!      CALL qs_rho_get(rho, rho_ao=rho_ao, rho_ao_kp=rho_ao_kp)
+!      ALLOCATE(density_modified(2))
+!      CALL dbcsr_init_p(density_modified(1)%matrix)
+!      CALL dbcsr_create(density_modified(1)%matrix, &
+!                          template=rho_ao(1)%matrix, &
+!                          name="P_AB full alfa", &
+!                          matrix_type=dbcsr_type_no_symmetry)
+!      CALL dbcsr_init_p(density_modified(2)%matrix)
+!      CALL dbcsr_create(density_modified(2)%matrix, &
+!                          template=rho_ao(2)%matrix, &
+!                          name="P_AB full beta", &
+!                          matrix_type=dbcsr_type_no_symmetry)
+!
+!      CALL copy_fm_to_dbcsr(P_alfa_fm, density_modified(1)%matrix)
+!      CALL copy_fm_to_dbcsr(P_beta_fm, density_modified(2)%matrix)
+!
+!      !!!! Modified density in non-sym format is done above
+!      !!!! Now do the poisson solve call with previous symmetric density without
+!      !!!! pointing rho yet to the non-sym form to get  the v_hartree potential
+!
+!      CALL get_qs_env(qs_env_b, pw_env=pw_env)
+!      CALL pw_env_get(pw_env, auxbas_pw_pool=auxbas_pw_pool, poisson_env=poisson_env)
+!      CALL pw_pool_create_pw(auxbas_pw_pool, &
+!                                     v_hartree_gspace%pw, &
+!                                     use_data=COMPLEXDATA1D, &
+!                                     in_space=RECIPROCALSPACE)
+!      CALL pw_pool_create_pw(auxbas_pw_pool, &
+!                                     rho_tot_gspace%pw, &
+!                                     use_data=COMPLEXDATA1D, &
+!                                     in_space=RECIPROCALSPACE)
+!      CALL pw_zero(rho_tot_gspace%pw)
+!      CALL pw_zero(v_hartree_gspace%pw)
+!      CALL calc_rho_tot_gspace(rho_tot_gspace, qs_env_b, rho)
+!      CALL cp_dbcsr_write_sparse_matrix(rho_ao_kp(1, 1)%matrix, 4,12,qs_env_b,para_env, &
+!                                     output_unit=iw,omit_headers=omit_headers)
+!      CALL pw_poisson_solve(poisson_env, rho_tot_gspace%pw, ehartree_pw, &
+!                                  v_hartree_gspace%pw,rho_core=rho_core,iw=iw)
+!
+!      !!!! so potential is obtained, now we can point density to the non-sym
+!      !!!! form
+!
+!     ! rho_ao_kp(1:nspins, 1:1) => density_modified(1:nspins)
+!     ! rho_ao => density_modified
+!     ! CALL qs_rho_set(rho, rho_ao=rho_ao, rho_ao_kp=rho_ao_kp)
+!     ! CALL set_ks_env(ks_env, symmetry=.FALSE.)
+!     ! !! We need to update the task list to suit the non symmetric matrix
+!     ! NULLIFY (task_list_sub)
+!     ! skip_load_balance_distributed = dft_control%qs_control%skip_load_balance_distributed
+!     ! CALL get_qs_env(qs_env_b, ks_env=ks_env, sab_orb=sab_orb_sub)
+!     ! CALL allocate_task_list(task_list_sub)
+!     ! CALL generate_qs_task_list(ks_env, task_list_sub, &
+!     !                               reorder_rs_grid_ranks=.TRUE., soft_valid=.FALSE., &
+!     !                               skip_load_balance_distributed=skip_load_balance_distributed)
+!
+!     ! ! Check if task lists are updated with this call so that non-sym can run
+!     ! ! file 126 is printing iatom, jatom, etc from density collocations
+!     ! !CALL qs_env_update_s_mstruct(qs_env_b)
+!
+!     ! CALL qs_rho_update_rho(rho, qs_env=qs_env_b, task_list_external=task_list_sub)
+!      CALL qs_ks_did_change(ks_env, rho_changed=.TRUE., potential_changed=.FALSE.)
+!      WRITE(141,*) "ehartree_pw after call to poisson_solve in vab", ehartree_pw
+!      ehartree_pw = 0.5_dp*pw_integral_ab(rho_tot_gspace%pw, v_hartree_gspace%pw)
+!      WRITE(141,*) "ehartree_pw after multiplying with modified den", ehartree_pw
+!      CALL Vh_1c_gg_integrals(qs_env_b, ehartree_1c, calls=2)
+!      WRITE(141,*) "ehartree_1c calculated in vab with modified den", ehartree_1c
+!
+!     ! ALLOCATE(ks_no_sym(2))
+!     ! CALL dbcsr_init_p(ks_no_sym(1)%matrix)
+!     ! CALL dbcsr_create(ks_no_sym(1)%matrix, &
+!     !                     template=rho_ao(1)%matrix, &
+!     !                     name="KS_new_no_sym_alfa", &
+!     !                     matrix_type=dbcsr_type_no_symmetry)
+!     ! CALL dbcsr_init_p(ks_no_sym(2)%matrix)
+!     ! CALL dbcsr_create(ks_no_sym(2)%matrix, &
+!     !                     template=rho_ao(1)%matrix, &
+!     !                     name="KS_new_no_sym_beta", &
+!     !                     matrix_type=dbcsr_type_no_symmetry)
+!
+!     ! CALL get_ks_env(ks_env, matrix_ks_kp=ks_mat_kp, matrix_h_kp=h_mat_kp, kinetic_kp=t_mat_kp)
+!     ! ALLOCATE(h_mat_no_sym(1))
+!     ! CALL dbcsr_init_p(h_mat_no_sym(1)%matrix)
+!     ! CALL dbcsr_create(h_mat_no_sym(1)%matrix, &
+!     !                     template=rho_ao(1)%matrix, &
+!     !                     name="H_coreHamiltonian_no_sym", &
+!     !                     matrix_type=dbcsr_type_no_symmetry)
+!     ! ALLOCATE(t_mat_no_sym(1))
+!     ! CALL dbcsr_init_p(t_mat_no_sym(1)%matrix)
+!     ! CALL dbcsr_create(t_mat_no_sym(1)%matrix, &
+!     !                     template=rho_ao(1)%matrix, &
+!     !                     name="Kinetic_matrix_no_sym", &
+!     !                     matrix_type=dbcsr_type_no_symmetry)
+!
+!     ! CALL dbcsr_desymmetrize(h_mat_kp(1,1)%matrix, h_mat_no_sym(1)%matrix)
+!     ! CALL dbcsr_desymmetrize(t_mat_kp(1,1)%matrix, t_mat_no_sym(1)%matrix)
+!     ! h_mat_kp(1,1)%matrix => h_mat_no_sym(1)%matrix
+!     ! t_mat_kp(1,1)%matrix => t_mat_no_sym(1)%matrix
+!     ! CALL dbcsr_desymmetrize(ks_mat_kp(1,1)%matrix, ks_no_sym(1)%matrix)
+!     ! CALL dbcsr_desymmetrize(ks_mat_kp(2,1)%matrix, ks_no_sym(2)%matrix)
+!     ! ks_mat_kp(1:nspins, 1:1) => ks_no_sym(1:nspins)
+!     ! CALL set_ks_env(ks_env, matrix_ks=ks_no_sym, matrix_h=h_mat_no_sym, &
+!     !                 kinetic=t_mat_no_sym, s_mstruct_changed=.TRUE.)
+!     !!! Core Hamiltonian potential and kinetic energies !!!
+!      !CALL calculate_ptrace(h_mat_kp, rho_ao_kp, core_energy, dft_control%nspins)
+!      !CALL calculate_ptrace(t_mat_kp, rho_ao_kp, kinetic_energy, dft_control%nspins)
+!      WRITE(141,*) "######### AB ENERGIES #########"
+!      WRITE(141,*) "1. Core Hamiltonian (T+V)", core_energy
+!      WRITE(141,*) "1.a Kinetic energy T     ", kinetic_energy
+!      WRITE(141,*) "1.b PP non local   V     ", core_energy - kinetic_energy
+!      WRITE(141,*) "2.1 Hartree pw           ", ehartree_pw
+!      WRITE(141,*) "2.2 Hartree 1centered    ", ehartree_1c
+!      WRITE(141,*) "3. Exchange              "
+!      WRITE(141,*) "4. Self energy           "
+!
+!     ! CALL pw_release(rho_tot_gspace%pw)
+!     ! CALL pw_release(v_hartree_gspace%pw)
+!     ! CALL dbcsr_release(ks_no_sym(1)%matrix)
+!     ! CALL dbcsr_release(h_mat_no_sym(1)%matrix)
+!     ! CALL dbcsr_release(t_mat_no_sym(1)%matrix)
+!     ! DEALLOCATE(ks_no_sym, h_mat_no_sym, t_mat_no_sym) 
+!!#################
+!!#################  Doing asymmetric part
+!!#################
+
+!      NULLIFY(density_modified_asym)
+!
+!      CALL get_qs_env(qs_env_b, rho=rho)
+!      CALL qs_rho_get(rho, rho_ao=rho_ao, rho_ao_kp=rho_ao_kp)
+!
+!      ALLOCATE(density_modified_asym(2))
+!      CALL dbcsr_init_p(density_modified_asym(1)%matrix)
+!      CALL dbcsr_create(density_modified_asym(1)%matrix, &
+!                          template=rho_ao(1)%matrix, &
+!                          name="P_AB anti-symmetric alfa", &
+!                          matrix_type=dbcsr_type_antisymmetric)
+!      CALL dbcsr_init_p(density_modified_asym(2)%matrix)
+!      CALL dbcsr_create(density_modified_asym(2)%matrix, &
+!                          template=rho_ao(2)%matrix, &
+!                          name="P_AB anti-symmetric beta", &
+!                          matrix_type=dbcsr_type_antisymmetric)
+!
+!      CALL cp_fm_create(P_alfa_fm_asym, matrix_struct=fm_struct_tmp2)
+!      CALL cp_fm_create(P_beta_fm_asym, matrix_struct=fm_struct_tmp2)
+!      CALL cp_fm_transpose(P_alfa_fm, P_alfa_fm_asym)
+!      CALL cp_fm_transpose(P_beta_fm, P_beta_fm_asym)
+!      CALL cp_fm_scale_and_add(-0.5_dp, P_alfa_fm_asym, 0.5_dp, P_alfa_fm)
+!      CALL cp_fm_scale_and_add(-0.5_dp, P_beta_fm_asym, 0.5_dp, P_beta_fm)
+!      CALL copy_fm_to_dbcsr(P_alfa_fm_asym, density_modified_asym(1)%matrix)
+!      CALL copy_fm_to_dbcsr(P_beta_fm_asym, density_modified_asym(2)%matrix)
+!
+!      rho_ao_kp(1:nspins, 1:1) => density_modified_asym(1:nspins)
+!      rho_ao => density_modified_asym
+!      CALL qs_rho_set(rho, rho_ao=rho_ao, rho_ao_kp=rho_ao_kp)
+!      CALL section_vals_val_get(qs_env_b%input, "DFT%PRINT%AO_MATRICES%OMIT_HEADERS",l_val=omit_headers)
+!      CALL section_vals_val_get(qs_env_b%input,"DFT%PRINT%AO_MATRICES%NDIGITS",i_val=after)
+!      after=MIN(MAX(after,1),16)
+!      before=2
+!      CALL cp_dbcsr_write_sparse_matrix(density_modified_asym(1)%matrix, before, after, qs_env_b, para_env, &
+!                                     output_unit=iw, omit_headers=omit_headers)
+!      CALL cp_dbcsr_write_sparse_matrix(rho_ao(1)%matrix, before,after,qs_env_b, para_env, &
+!                                     output_unit=iw, omit_headers=omit_headers)
+!      CALL cp_dbcsr_write_sparse_matrix(rho_ao_kp(1,1)%matrix, before,after,qs_env_b, para_env, &
+!                                     output_unit=iw, omit_headers=omit_headers)
+!
+!      CALL cp_dbcsr_write_sparse_matrix(density_modified_asym(2)%matrix, before, after,qs_env_b, para_env, &
+!                                     output_unit=iw, omit_headers=omit_headers)
+!
+!      CALL qs_rho_update_rho(rho, qs_env=qs_env_b)
+!      CALL qs_ks_did_change(ks_env, rho_changed=.TRUE., potential_changed=.TRUE.)
+!      CALL qs_ks_update_qs_env(qs_env_b, just_energy=.TRUE., &
+!                                     calculate_forces=.FALSE., calc_vab=.TRUE.)
+!
+!#################
+!#################  Done with AB part
+!#################
+
+      !CALL cp_fm_release(mo_coeff_a_alfa)
+      !CALL cp_fm_release(mo_coeff_a_beta)
+      !CALL cp_fm_release(mo_coeff_b_alfa)
+      !CALL cp_fm_release(mo_coeff_b_beta)
+      !CALL cp_fm_release(matrix_s_fm)
+      !CALL cp_fm_release(P_alfa_fm)
+      !CALL cp_fm_release(P_beta_fm)
+      !CALL cp_fm_release(PA_hat_alfa_fm)
+      !CALL cp_fm_release(PA_hat_beta_fm)
+      !CALL cp_fm_release(PB_hat_alfa_fm)
+      !CALL cp_fm_release(PB_hat_beta_fm)
+      !CALL cp_fm_release(P_alfa_fm_sym)
+      !CALL cp_fm_release(P_beta_fm_sym)
+      !CALL cp_fm_release(P_alfa_fm_asym)
+      !CALL cp_fm_release(P_beta_fm_asym)
+      !CALL cp_fm_struct_release(fm_struct_tmp)
+      !CALL cp_fm_struct_release(fm_struct_tmp2)
+      !CALL dbcsr_release(density_modified_a(1)%matrix)
+      !CALL dbcsr_release(density_modified_a(2)%matrix)
+      !DEALLOCATE(density_modified_a)
+      !CALL dbcsr_release(density_modified_b(1)%matrix)
+      !CALL dbcsr_release(density_modified_b(2)%matrix)
+      !DEALLOCATE(density_modified_b)
+      !CALL dbcsr_release(density_modified_sym(1)%matrix)
+      !CALL dbcsr_release(density_modified_sym(2)%matrix)
+      !DEALLOCATE(density_modified_sym)
+      !CALL dbcsr_release(density_modified_asym(1)%matrix)
+      !CALL dbcsr_release(density_modified_asym(2)%matrix)
+      !DEALLOCATE(density_modified_asym)
+   END SUBROUTINE calculate_vab
+
+   SUBROUTINE product_except_self(diag_mat, T_mat)
+      REAL(kind=dp), DIMENSION(:), POINTER                               :: diag_mat
+      REAL(kind=dp), DIMENSION(:,:), POINTER, INTENT(OUT)       :: T_mat  
+      CHARACTER(len=*), PARAMETER :: routineN = 'product_except_self', &
+         routineP = moduleN//':'//routineN
+      
+      INTEGER                                                   :: i, j, N
+      REAL(kind=dp)                                             :: r_prod
+
+      N = SIZE(diag_mat)
+      IF (N == 0) RETURN
+      DO i = 1,N
+         DO j = 1,N
+            IF (i == j) THEN 
+                T_mat(i,j) = 1.0_dp
+            ELSE
+                T_mat(i,j) = 0.0_dp
+            END IF
+         END DO
+      END DO
+      DO i = 2, N
+        T_mat(i,i) = T_mat(i-1,i-1) * diag_mat(i-1)
+      END DO
+      r_prod = 1.0_dp      
+      DO i = N,1,-1
+        T_mat(i,i) = T_mat(i,i) * r_prod
+        r_prod = r_prod * diag_mat(i)
+      END DO
+   END SUBROUTINE product_except_self
+
+   SUBROUTINE write_real_2dmatrix_to(matrix, write_nr, matrix_name)
+      REAL(kind=dp), DIMENSION(:,:), POINTER                             :: matrix 
+      INTEGER                                                   :: write_nr
+      CHARACTER(len=*)                                          :: matrix_name
+      CHARACTER(len=*), PARAMETER :: routineN = 'write_real_2dmatrix_to', &
+         routineP = moduleN//':'//routineN
+      INTEGER                                                   :: i, M
+      WRITE(write_nr,*) "----------"
+      WRITE(write_nr,*) matrix_name
+      WRITE(write_nr,*) "----------"
+      M = SIZE(matrix, 1)
+      DO i = 1, M
+           WRITE(write_nr,*) matrix(i, :)
+      END DO
+      WRITE(write_nr,*) "----------"
+   END SUBROUTINE write_real_2dmatrix_to
+
+   SUBROUTINE write_real_1dmatrix_to(matrix, write_nr, matrix_name)
+      REAL(kind=dp), DIMENSION(:), POINTER                             :: matrix
+      INTEGER                                                   :: write_nr
+      CHARACTER(len=*)                                          :: matrix_name
+      CHARACTER(len=*), PARAMETER :: routineN = 'write_real_2dmatrix_to', &
+         routineP = moduleN//':'//routineN
+      WRITE(write_nr,*) "----------"
+      WRITE(write_nr,*) matrix_name
+      WRITE(write_nr,*) "----------"
+      WRITE(write_nr,*) matrix(:)
+      WRITE(write_nr,*) "----------"
+   END SUBROUTINE write_real_1dmatrix_to
+
+   !Following routine is from  from dbcsr_example3.F
+   SUBROUTINE random_dist(dist_array, dist_size, nbins)
+      INTEGER, DIMENSION(:), INTENT(out), POINTER        :: dist_array
+      INTEGER, INTENT(in)                                :: dist_size, nbins
+
+      INTEGER                                            :: i
+
+      ALLOCATE (dist_array(dist_size))
+      DO i = 1, dist_size
+         dist_array(i) = MODULO(nbins-i, nbins)
+      END DO
+
+   END SUBROUTINE random_dist
+  
+END MODULE vab

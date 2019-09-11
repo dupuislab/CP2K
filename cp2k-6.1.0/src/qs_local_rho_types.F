@@ -116,7 +116,7 @@ CONTAINS
       CALL reallocate(rhoz%r_coef, 1, nr)
       CALL reallocate(rhoz%dr_coef, 1, nr)
       CALL reallocate(rhoz%vr_coef, 1, nr)
-
+      
       c1 = alpha/pi
       c2 = c1*c1*c1*fourpi
       c3 = SQRT(alpha)

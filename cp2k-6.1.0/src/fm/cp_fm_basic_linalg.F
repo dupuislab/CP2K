@@ -433,17 +433,14 @@ CONTAINS
       desca(:) = matrix_a%matrix_struct%descriptor(:)
       descb(:) = matrix_b%matrix_struct%descriptor(:)
       descc(:) = matrix_c%matrix_struct%descriptor(:)
-
       IF (matrix_a%use_sp .AND. matrix_b%use_sp .AND. matrix_c%use_sp) THEN
 
          CALL psgemm(transa, transb, m, n, k, REAL(alpha, sp), a_sp(1, 1), i_a, j_a, desca, b_sp(1, 1), i_b, j_b, &
                      descb, REAL(beta, sp), c_sp(1, 1), i_c, j_c, descc)
 
       ELSEIF ((.NOT. matrix_a%use_sp) .AND. (.NOT. matrix_b%use_sp) .AND. (.NOT. matrix_c%use_sp)) THEN
-
          CALL pdgemm(transa, transb, m, n, k, alpha, a(1, 1), i_a, j_a, desca, b(1, 1), i_b, j_b, &
                      descb, beta, c(1, 1), i_c, j_c, descc)
-
       ELSE
          CPABORT("Mixed precision gemm NYI")
       ENDIF

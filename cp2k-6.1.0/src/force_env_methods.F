@@ -146,6 +146,7 @@ MODULE force_env_methods
                                               virial_release,&
                                               virial_type,&
                                               zero_virial
+   USE vab,                             ONLY: calculate_vab
 #include "./base/base_uses.f90"
 
    IMPLICIT NONE
@@ -190,7 +191,7 @@ CONTAINS
       REAL(kind=dp), PARAMETER                           :: ateps = 1.0E-6_dp
 
       INTEGER                                            :: i, j, nat, ndigits, output_unit, &
-                                                            print_forces
+                                                            print_forces,iw
       LOGICAL                                            :: calculate_forces, &
                                                             calculate_stress_tensor, &
                                                             energy_consistency, eval_ef, &
@@ -209,6 +210,9 @@ CONTAINS
 
       NULLIFY (logger, virial, subsys, atprop_env, cell)
       logger => cp_get_default_logger()
+      iw = cp_print_key_unit_nr(logger, force_env%force_env_section,"PRINT%PROGRAM_RUN_INFO", &
+                                         extension=".Log")
+
       eval_ef = .TRUE.
       my_skip = .FALSE.
       calculate_forces = .TRUE.
@@ -231,7 +235,6 @@ CONTAINS
       CALL force_env_set(force_env, additional_potential=0.0_dp)
       CALL cp_subsys_get(subsys, virial=virial, atprop=atprop_env, cell=cell)
       IF (virial%pv_availability) CALL zero_virial(virial, reset=.FALSE.)
-
       nat = force_env_get_natom(force_env)
       CALL atprop_init(atprop_env, nat)
       IF (eval_ef) THEN
@@ -239,6 +242,11 @@ CONTAINS
          CASE (use_fist_force)
             CALL fist_calc_energy_force(force_env%fist_env)
          CASE (use_qs_force)
+        !    IF(iw>0) WRITE(iw,FMT="(A)") &
+        ! "***INSIDE FORCE_ENV_METHODS MODULE:: force_env_calc_energy_force(), CASE is QS_FORCE"
+        !    IF(iw>0) WRITE(iw,FMT="(A)") &
+        ! "***CALLING qs_calc_energy_force(force_env%qs_env, calculate_forces, energy_consistency, linres_run)"
+        !    IF(iw>0) WRITE(iw,FMT="(A)") "***which belongs to qs_force module"
             CALL qs_calc_energy_force(force_env%qs_env, calculate_forces, energy_consistency, linres_run)
          CASE (use_eip_force)
             IF (force_env%eip_env%eip_model == use_lenosky_eip) THEN
@@ -278,10 +286,8 @@ CONTAINS
             END IF
          END IF
       END IF
-
       !sample peak memory
       CALL m_memory()
-
       ! Some additional tasks..
       IF (.NOT. my_skip) THEN
          ! Flexible Partitioning
@@ -301,7 +307,6 @@ CONTAINS
          ! Rescale forces if requested
          CALL rescale_forces(force_env)
       END IF
-
       CALL force_env_get(force_env, potential_energy=e_pot)
 
       ! Print always Energy in the same format for all methods
@@ -465,7 +470,6 @@ CONTAINS
          CALL cp_print_key_finished_output(output_unit, logger, force_env%force_env_section, &
                                            "PRINT%PROGRAM_RUN_INFO")
       END IF
-
    END SUBROUTINE force_env_calc_energy_force
 
 ! **************************************************************************************************
@@ -798,6 +802,7 @@ CONTAINS
 !>       04.08  reorganizing the genmix structure (collecting common code)
 !>       01.16  added CDFT [Nico Holmberg]
 !>       08.17  added DFT embedding [Vladimir Rybkin]
+!>       07.19  call to VAB calculation added [Pavan Behara]
 !> \author Florian Schiffmann
 ! **************************************************************************************************
    SUBROUTINE mixed_energy_forces(force_env, calculate_forces)
@@ -812,9 +817,9 @@ CONTAINS
       CHARACTER(LEN=default_string_length)               :: def_error, description, this_error
       INTEGER                                            :: iforce_eval, iparticle, istate(2), &
                                                             jparticle, mixing_type, my_group, &
-                                                            natom, nforce_eval, source, unit_nr
+                                                            natom, nforce_eval, source, unit_nr, pot_type
       INTEGER, DIMENSION(:), POINTER                     :: glob_natoms, itmplist, map_index
-      LOGICAL                                            :: converged_embed, dip_exists
+      LOGICAL                                            :: converged_embed, dip_exists, do_vab
       REAL(KIND=dp)                                      :: coupling_parameter, dedf, der_1, der_2, &
                                                             dx, energy, err, lambda, lerr, &
                                                             restraint_strength, restraint_target, &
@@ -837,10 +842,10 @@ CONTAINS
       TYPE(pw_pool_type), POINTER                        :: auxbas_pw_pool
       TYPE(section_vals_type), POINTER                   :: force_env_section, gen_section, &
                                                             mapping_section, mixed_section, &
-                                                            root_section
+                                                            root_section, vab_section
       TYPE(virial_p_type), DIMENSION(:), POINTER         :: virials
       TYPE(virial_type), POINTER                         :: loc_virial, virial_mix
-
+      
       logger => cp_get_default_logger()
       CPASSERT(ASSOCIATED(force_env))
       ! Get infos about the mixed subsys
@@ -856,6 +861,7 @@ CONTAINS
       NULLIFY (map_index, glob_natoms, global_forces, itmplist)
 
       nforce_eval = SIZE(force_env%sub_force_env)
+      !WRITE(112,*) "NFORCE_EVAL is ", nforce_eval
       mixed_section => section_vals_get_subs_vals(force_env_section, "MIXED")
       mapping_section => section_vals_get_subs_vals(mixed_section, "MAPPING")
       ! Global Info
@@ -871,10 +877,10 @@ CONTAINS
       glob_natoms = 0
       ! Check if mixed CDFT calculation is requested and initialize
       CALL mixed_cdft_init(force_env, calculate_forces)
-
       !
       IF (.NOT. force_env%mixed_env%do_mixed_cdft) THEN
          DO iforce_eval = 1, nforce_eval
+            WRITE (112, *) "WRITING after DO IFORCE_EVAL",iforce_eval, nforce_eval
             NULLIFY (subsystems(iforce_eval)%subsys, particles(iforce_eval)%list)
             NULLIFY (results(iforce_eval)%results, virials(iforce_eval)%virial)
             CALL virial_create(virials(iforce_eval)%virial)
@@ -914,7 +920,6 @@ CONTAINS
             CALL force_env_calc_energy_force(force_env%sub_force_env(iforce_eval)%force_env, &
                                              calc_force=calculate_forces, &
                                              skip_external_control=.TRUE.)
-
             ! Call DFT embedding
             IF (ASSOCIATED(force_env%sub_force_env(iforce_eval)%force_env%qs_env)) THEN
                NULLIFY (dft_control)
@@ -957,11 +962,13 @@ CONTAINS
                DEALLOCATE (map_index)
             END IF
             CALL cp_rm_default_logger()
+            
          END DO
       ELSE
          CALL mixed_cdft_energy_forces(force_env, calculate_forces, particles, energies, &
                                        glob_natoms, virials, results)
       END IF
+
       ! Handling Parallel execution
       CALL mp_sync(force_env%para_env%group)
       ! Post CDFT operations
@@ -1124,6 +1131,18 @@ CONTAINS
       CASE DEFAULT
          CPABORT("")
       END SELECT
+      do_vab = .FALSE.
+      vab_section => section_vals_get_subs_vals(mixed_section, "VAB")
+      CALL section_vals_val_get(vab_section, "DO_VAB", &
+                                l_val=do_vab)
+      CALL section_vals_val_get(vab_section, "HF%INTERACTION_POTENTIAL%POTENTIAL_TYPE", &
+                                i_val=pot_type)
+      WRITE(122,*) "do_vab is", do_vab
+      WRITE(122,*) "potential type", pot_type
+      FLUSH(122)
+      IF(do_vab) THEN
+         CALL calculate_vab(force_env)
+      END IF
       !Simply deallocate and loose the pointer references..
       DO iforce_eval = 1, nforce_eval
          DEALLOCATE (global_forces(iforce_eval)%forces)
@@ -1152,6 +1171,7 @@ CONTAINS
          END IF
       END IF
       CALL cp_print_key_finished_output(unit_nr, logger, mixed_section, "PRINT%DIPOLE")
+
    END SUBROUTINE mixed_energy_forces
 
 ! **************************************************************************************************

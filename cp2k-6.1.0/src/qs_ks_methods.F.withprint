@@ -60,8 +60,7 @@ MODULE qs_ks_methods
    USE dbcsr_api,                       ONLY: &
         dbcsr_add, dbcsr_allocate_matrix_set, dbcsr_copy, dbcsr_create, dbcsr_filter, &
         dbcsr_get_info, dbcsr_multiply, dbcsr_p_type, dbcsr_release, dbcsr_set, dbcsr_type, &
-        dbcsr_type_symmetric, dbcsr_type_no_symmetry, dbcsr_desymmetrize, dbcsr_init_p, &
-        dbcsr_get_matrix_type
+        dbcsr_type_symmetric
    USE dft_plus_u,                      ONLY: plus_u
    USE efield_utils,                    ONLY: efield_potential
    USE hartree_local_methods,           ONLY: Vh_1c_gg_integrals
@@ -82,7 +81,6 @@ MODULE qs_ks_methods
                                               lri_kind_type
    USE mathlib,                         ONLY: abnormal_value
    USE message_passing,                 ONLY: mp_sum
-   USE physcon,                         ONLY: evolt, wavenumbers, kcalmol, kjmol, hertz
    USE pw_env_types,                    ONLY: pw_env_get,&
                                               pw_env_type
    USE pw_methods,                      ONLY: pw_axpy,&
@@ -91,7 +89,7 @@ MODULE qs_ks_methods
                                               pw_integrate_function,&
                                               pw_scale,&
                                               pw_transfer,&
-                                              pw_zero, pw_integral_ab
+                                              pw_zero
    USE pw_poisson_methods,              ONLY: pw_poisson_solve
    USE pw_poisson_types,                ONLY: pw_poisson_implicit,&
                                               pw_poisson_type
@@ -205,34 +203,23 @@ CONTAINS
 !>      to qs_env components?
 ! **************************************************************************************************
    SUBROUTINE qs_ks_build_kohn_sham_matrix(qs_env, calculate_forces, just_energy, &
-                                           print_active, ext_ks_matrix, &
-                                           calc_vab, dtprod, dhprod, k2ab, hxx, haa, hbb, &
-                                           split_energy, first_iter_exc) !, j2_ab, &
-                                           !elec_pw, elec_1c, nuc_pw, nuc_1c, nuc_elec_attrac)
+                                           print_active, ext_ks_matrix)
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL, INTENT(in)                                :: calculate_forces, just_energy
-      LOGICAL, INTENT(IN), OPTIONAL                      :: print_active, calc_vab, &
-                                                            first_iter_exc
-      LOGICAL, OPTIONAL                                  :: split_energy
+      LOGICAL, INTENT(IN), OPTIONAL                      :: print_active
       TYPE(dbcsr_p_type), DIMENSION(:), OPTIONAL, &
          POINTER                                         :: ext_ks_matrix
-      REAL(KIND=dp), OPTIONAL                            :: dtprod, dhprod, k2ab, haa, hbb
-      REAL(KIND=dp), INTENT(OUT), OPTIONAL               :: hxx
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_ks_build_kohn_sham_matrix', &
          routineP = moduleN//':'//routineN
 
       CHARACTER(len=default_string_length)               :: name
       INTEGER                                            :: handle, iatom, img, ispin, nimages, ns, &
-                                                            nspins,iw,after
+                                                            nspins,iw,after,deebugg
       LOGICAL :: do_adiabatic_rescaling, do_ddapc, do_hfx, do_ppl, gapw, gapw_xc, &
          hfx_treat_lsd_in_core, just_energy_xc, lrigpw, my_print, rigpw, use_virial,omit_headers
       REAL(KIND=dp)                                      :: ecore_ppl, edisp, ee_ener, ekin_mol, &
-                                                            mulliken_order_p, j2_ab, elec_pw, &
-                                                            elec_1c, nuc_pw, nuc_1c, nuc_elec_attrac, &
-                                                            h1_ab, h2_ab, s_ab, V_ab, e_nuc, hab, &
-                                                            habs_ab,a_coeff,b_coeff,c_coeff,delta, &
-                                                            sdel,E_upper,E_lower,half_sp
+                                                            mulliken_order_p
       REAL(KIND=dp), DIMENSION(3, 3)                     :: h_stress
       TYPE(admm_type), POINTER                           :: admm_env
       TYPE(becke_constraint_type), POINTER               :: becke
@@ -249,12 +236,12 @@ CONTAINS
       TYPE(lri_kind_type), DIMENSION(:), POINTER         :: lri_v_int
       TYPE(pw_env_type), POINTER                         :: pw_env
       TYPE(pw_p_type) :: rho_tot_gspace, v_efield_rspace, v_hartree_gspace, v_hartree_rspace, &
-         v_minus_veps, v_sccs_rspace, v_sic_rspace,v_spin_ddapc_rest_r
+         v_minus_veps, v_sccs_rspace, v_sic_rspace, v_spin_ddapc_rest_r
       TYPE(pw_p_type), DIMENSION(:), POINTER             :: rho_r, v_rspace_embed, v_rspace_new, &
                                                             v_rspace_new_aux_fit, v_tau_rspace, &
                                                             v_tau_rspace_aux_fit
       TYPE(pw_p_type), POINTER                           :: rho0_s_rs, rho_core, rho_nlcc, vee, &
-                                                            vppl_rspace,rho0_s_gsn
+                                                            vppl_rspace
       TYPE(pw_poisson_type), POINTER                     :: poisson_env
       TYPE(pw_pool_p_type), DIMENSION(:), POINTER        :: pw_pools
       TYPE(pw_pool_type), POINTER                        :: auxbas_pw_pool
@@ -277,10 +264,11 @@ CONTAINS
                ks_matrix, rho, energy, rho_xc, rho_r, rho_ao, rho_core)
 
       CPASSERT(ASSOCIATED(qs_env))
-      !WRITE(170,*) "in qs_ks_build DTPROD, DHPROD", dtprod, dhprod
+
       logger => cp_get_default_logger()
       my_print = .TRUE.
       IF (PRESENT(print_active)) my_print = print_active
+
       CALL get_qs_env(qs_env, &
                       ks_env=ks_env, &
                       dft_control=dft_control, &
@@ -300,24 +288,9 @@ CONTAINS
                       rho_core=rho_core, &
                       rho_xc=rho_xc, &
                       energy=energy)
+
       CALL qs_rho_get(rho, rho_r=rho_r, rho_ao_kp=rho_ao)
-      CALL section_vals_val_get(qs_env%input, "DFT%PRINT%AO_MATRICES%OMIT_HEADERS",l_val=omit_headers)
-      CALL section_vals_val_get(qs_env%input, "DFT%PRINT%AO_MATRICES%NDIGITS",i_val=after)
-      after = MIN(MAX(after, 1), 16)
-      iw = cp_print_key_unit_nr(logger, qs_env%input,"DFT%SCF%PRINT%ITERATION_INFO", &
-                                   extension=".scfLog")
-      IF(split_energy) THEN
-        IF(iw>0) WRITE(iw, FMT="(A)") "##Inside build_kohn_sham_matrix() before doing any function calls"
-        DO ispin = 1, dft_control%nspins
-           !CALL cp_dbcsr_write_sparse_matrix(rho_ao(ispin,1)%matrix, 4, after, qs_env, &
-           !             para_env, output_unit=iw,omit_headers=omit_headers)
-        END DO
-        !CALL cp_dbcsr_write_sparse_matrix(ks_matrix(1, 1)%matrix, 4,after,qs_env, para_env, &
-        !                               output_unit=iw,omit_headers=omit_headers)
-        !CALL cp_dbcsr_write_sparse_matrix(ks_matrix(2, 1)%matrix, 4,after,qs_env,para_env, &
-        !                               output_unit=iw,omit_headers=omit_headers)
-      END IF
-      !split_energy=.TRUE.
+
       IF (PRESENT(ext_ks_matrix)) THEN
          ! remap pointer to allow for non-kpoint external ks matrix
          ! ext_ks_matrix is used in linear response code
@@ -396,18 +369,17 @@ CONTAINS
       IF (gapw .AND. (poisson_env%parameters%solver .EQ. pw_poisson_implicit)) THEN
          CPABORT("The implicit Poisson solver cannot be used in conjunction with GAPW.")
       END IF
+      CALL section_vals_val_get(qs_env%input, "DFT%PRINT%AO_MATRICES%OMIT_HEADERS",l_val=omit_headers)
+      CALL section_vals_val_get(qs_env%input, "DFT%PRINT%AO_MATRICES%NDIGITS",i_val=after)
+      after = MIN(MAX(after, 1), 16)
+      iw = cp_print_key_unit_nr(logger, qs_env%input,"DFT%SCF%PRINT%ITERATION_INFO", &
+                                   extension=".scfLog")
+      deebugg = 10
 
       ! ***  Prepare densities for gapw ***
-      IF(split_energy) THEN
-        IF (gapw .OR. gapw_xc) THEN
-           CALL prepare_gapw_den(qs_env, do_rho0=(.NOT. gapw_xc),calls=1)
-        ENDIF
-      ELSE
-        IF (gapw .OR. gapw_xc) THEN
-           CALL prepare_gapw_den(qs_env, do_rho0=(.NOT. gapw_xc),calls=2)
-        END IF
-      END IF
-
+      IF (gapw .OR. gapw_xc) THEN
+         CALL prepare_gapw_den(qs_env, do_rho0=(.NOT. gapw_xc))
+      ENDIF
 
       ! Calculate the Hartree potential
       CALL pw_pool_create_pw(auxbas_pw_pool, &
@@ -432,18 +404,9 @@ CONTAINS
          CALL pw_zero(rho_tot_gspace%pw)
          CALL pw_zero(v_hartree_gspace%pw)
       END IF
-      !WRITE(iw, FMT="(A)")&
-      !      "##IN build_kohn_sham_matrix():: Calling calc_rho_tot_gspace()"
-      CALL pw_zero(rho_tot_gspace%pw)
+
       ! Get the total density in g-space [ions + electrons]
-      IF(.NOT. gapw .AND. split_energy) THEN
-        CALL calc_rho_tot_gspace(rho_tot_gspace, qs_env, rho, skip_nuclear_density=.TRUE., calls=1)
-      ELSE 
-        CALL calc_rho_tot_gspace(rho_tot_gspace, qs_env, rho)
-      END IF
-      !WRITE(iw, FMT="(A)")&
-      !      "##IN build_kohn_sham_matrix():: out of calc_rho_tot_gspace()&
-      !      & We now have [n_tilda + n_tilda_0] refer jgh reply on cp2k-forum"
+      CALL calc_rho_tot_gspace(rho_tot_gspace, qs_env, rho)
 
       IF (my_print) THEN
          CALL print_densities(qs_env, rho)
@@ -477,112 +440,11 @@ CONTAINS
                                   rho_core=rho_core)
             virial%pv_virial = virial%pv_virial+h_stress/REAL(para_env%num_pe, dp)
          ELSE
-            !WRITE(iw, FMT="(A)")&
-            ! "##IN build_kohn_sham_matrix():: Calling pw_poisson solve()\n&
-            ! & (PW part of electrostatic potential) calculates the soft density &
-            ! &contribution to the Hartree energy. Hartree energy before going &
-            ! &into poisson_solve is:"
-                !!!!!!!!!!!!!!!!!!   ELECTRON ONLY    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-            IF(split_energy) THEN
-                    IF(iw>0) WRITE(iw, *) "i). ELECTRON ONLY CALLS"
-                    CALL pw_poisson_solve(poisson_env, rho_tot_gspace%pw, energy%hartree, &
-                                          v_hartree_gspace%pw,iw=iw)
-                    IF(iw>0) WRITE(iw, *) "1. Electron_pw",energy%hartree
-
-              ! In case decouple periodic images and/or apply restraints to charges
-                    IF (gapw) CALL Vh_1c_gg_integrals(qs_env, energy%hartree_1c,calls=1)
-                    IF(iw>0) WRITE(iw, *) "2. Electron_1c",energy%hartree_1c
-                    IF(iw>0) WRITE(iw, *) "########## After 1st poisson call pure hartree &
-                      & (sum of above two quantities) ##########", energy%hartree+energy%hartree_1c
-                    IF(iw>0) WRITE(iw, *) "########################"
-                    elec_pw = energy%hartree
-                    elec_1c = energy%hartree_1c
-                    IF(calc_vab) THEN
-                        j2_ab = (energy%hartree+energy%hartree_1c)*dtprod/dhprod
-                        IF(iw>0) WRITE(iw,*) "ehartree, ehartree_1c after multiplying with DTPROD/DHPROD", &
-                                 energy%hartree*dtprod/dhprod, energy%hartree_1c*dtprod/dhprod
-                        IF(iw>0) WRITE(iw,*) "dtprod, dhprod are", dtprod, dhprod
-                        IF(iw>0) WRITE(iw,*) "J2_AB is ", j2_ab
-                    END IF
- 
-                    CALL pw_release(rho_tot_gspace%pw)
-                    CALL pw_release(v_hartree_gspace%pw)
-                    NULLIFY(v_rspace_new, v_tau_rspace)
-            END IF
-
-                !!!!!!!!!!!!!!!!!!!!!!!!!!!   NUCLEAR ONLY    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-            IF(split_energy) THEN
-           ! nuclear call #3: 
-
-                    !***  Prepare densities for gapw ***
-                    IF (gapw .OR. gapw_xc) THEN
-                      IF(iw>0) WRITE(iw, FMT="(A)") &
-                         "ii). NUCLEAR ONLY CALLS"
-                      CALL prepare_gapw_den(qs_env, do_rho0=(.NOT. gapw_xc),calls=3)
-                    ENDIF
-                    ! nucl call: Calculate the Hartree potential
-                    CALL pw_pool_create_pw(auxbas_pw_pool, &
-                                     v_hartree_gspace%pw, &
-                                     use_data=COMPLEXDATA1D, &
-                                     in_space=RECIPROCALSPACE)
-                    CALL pw_pool_create_pw(auxbas_pw_pool, &
-                                     rho_tot_gspace%pw, &
-                                     use_data=COMPLEXDATA1D, &
-                                     in_space=RECIPROCALSPACE)
-                    IF (gapw .OR. gapw_xc) THEN
-                      ! nucl call: Get the total density in g-space [ions ]
-                      CALL get_qs_env(qs_env=qs_env, rho0_s_gs=rho0_s_gsn)
-                      !rho0_s_gs contains the core charge in case of gapw and I am
-                      !passing it to rho0_s_gsn variable name
-                      !Under prepare_gapw_den rho0 is made to have only nuclear
-                      !charge, nopaw_as_gpw is false in calc_rho_tot and core is not added for my
-                      !gapw runs
-                      CALL pw_poisson_solve(poisson_env, rho0_s_gsn%pw, energy%hartree, &
-                                            v_hartree_gspace%pw, iw=iw)
-                    ELSE
-                      CALL pw_poisson_solve(poisson_env, rho_core%pw, energy%hartree, &
-                                            v_hartree_gspace%pw, iw=iw)
-                    END IF
-                    IF(iw>0) WRITE(iw, *) "1. Nuclear_pw",energy%hartree
-                    IF (gapw) CALL Vh_1c_gg_integrals(qs_env,energy%hartree_1c,calls=3)
-                    IF(iw>0) WRITE(iw, *) "2. Nuclear_1c",energy%hartree_1c
-                    nuc_1c = energy%hartree_1c
-                    nuc_pw = energy%hartree
-
-                    CALL pw_release(rho_tot_gspace%pw)
-                    CALL pw_release(v_hartree_gspace%pw)
-                    NULLIFY(v_rspace_new, v_tau_rspace)
-            END IF
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!REGULAR CALL AS BEFORE WITH BOTH ELEC+NUCL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   ! REGULAR CALL numbered as #2:
-            IF(split_energy) THEN
-              !***  Prepare densities for gapw ***
-              IF (gapw .OR. gapw_xc) THEN
-                IF(iw>0) WRITE(iw, FMT="(A)") &
-                   "iii). REGULAR CALL (ELECTRON+NUCLEAR)"
-                CALL prepare_gapw_den(qs_env, do_rho0=(.NOT. gapw_xc),calls=2)
-              ENDIF
-              ! 2nd call: Calculate the Hartree potential
-              CALL pw_pool_create_pw(auxbas_pw_pool, &
-                               v_hartree_gspace%pw, &
-                               use_data=COMPLEXDATA1D, &
-                               in_space=RECIPROCALSPACE)
-              CALL pw_pool_create_pw(auxbas_pw_pool, &
-                               rho_tot_gspace%pw, &
-                               use_data=COMPLEXDATA1D, &
-                               in_space=RECIPROCALSPACE)
-
-              ! regular call: Get the total density in g-space [ions + electrons]
-              CALL calc_rho_tot_gspace(rho_tot_gspace, qs_env, rho)
-            END IF
             CALL pw_poisson_solve(poisson_env, rho_tot_gspace%pw, energy%hartree, &
-                                  v_hartree_gspace%pw,rho_core=rho_core,iw=iw)
-            IF(iw>0 .AND. split_energy) WRITE(iw, *) "1. Hartree_pw",energy%hartree  
+                                  v_hartree_gspace%pw, rho_core=rho_core)
          END IF
       END IF
+
       ! In case decouple periodic images and/or apply restraints to charges
       IF (do_ddapc) THEN
          CALL qs_ks_ddapc(qs_env, auxbas_pw_pool, rho_tot_gspace, v_hartree_gspace, &
@@ -592,7 +454,6 @@ CONTAINS
          dft_control%qs_control%ddapc_explicit_potential = .FALSE.
          dft_control%qs_control%ddapc_restraint_is_spin = .FALSE.
          IF (.NOT. just_energy) THEN
-            !WRITE(112,*) "Entered the conditional here:line 450"
             CALL pw_transfer(v_hartree_gspace%pw, v_hartree_rspace%pw)
             CALL pw_scale(v_hartree_rspace%pw, v_hartree_rspace%pw%pw_grid%dvol)
          END IF
@@ -616,14 +477,9 @@ CONTAINS
       ! SIC
       CALL calc_v_sic_rspace(v_sic_rspace, energy, qs_env, dft_control, rho, poisson_env, &
                              just_energy, calculate_forces, auxbas_pw_pool)
-      !WRITE(iw, FMT="(A)")&
-      !      "##IN build_kohn_sham_matrix():: Calling Vh_1c_gg_integrals()"
-      !WRITE(iw, FMT="(A)")&
-      !      "##calculates the one centered contributions of gapw formalism\n&
-      !       & 2nd and 3rd terms in eqn. 23 of Lippert et al."
 
-      IF (gapw) CALL Vh_1c_gg_integrals(qs_env, energy%hartree_1c,calls=2)
-      IF(iw>0 .AND. split_energy) WRITE(iw, *) "2. Hartree_1c",energy%hartree_1c
+      IF (gapw) CALL Vh_1c_gg_integrals(qs_env, energy%hartree_1c)
+
       ! Check if becke potential is needed to constrain charges
       CALL qs_ks_becke_constraint(qs_env, auxbas_pw_pool, calculate_forces, matrix_s, becke)
 
@@ -745,14 +601,10 @@ CONTAINS
                                             energy%embed_corr, just_energy)
          ENDIF
          ! Everything else
-         IF(iw>0 .AND. split_energy) WRITE(iw, *) "Regular: Before call to qs_vxc &
-                        Regular_exc, exc1",energy%exc, energy%exc1
          CALL qs_vxc_create(ks_env=ks_env, rho_struct=rho_struct, xc_section=xc_section, &
                             vxc_rho=v_rspace_new, vxc_tau=v_tau_rspace, exc=energy%exc, &
                             edisp=edisp, dispersion_env=qs_env%dispersion_env, &
                             just_energy=just_energy_xc)
-         IF(iw>0 .AND. split_energy) WRITE(iw, *) "Regular: After call to qs_vxc_create &
-                        Regular_exc, exc1",energy%exc, energy%exc1
          IF (edisp /= 0.0_dp) energy%dispersion = edisp
          IF (qs_env%requires_matrix_vxc .AND. ASSOCIATED(v_rspace_new)) THEN
             CALL compute_matrix_vxc(qs_env=qs_env, v_rspace=v_rspace_new, matrix_vxc=matrix_vxc)
@@ -760,7 +612,6 @@ CONTAINS
          ENDIF
 
          IF (gapw .OR. gapw_xc) THEN
-            !WRITE(112,*) "Calculating xc derivatives here:line 609"
             CALL calculate_vxc_atom(qs_env, just_energy_xc)
          ENDIF
 
@@ -770,24 +621,27 @@ CONTAINS
       IF (use_virial .AND. calculate_forces) THEN
          virial%pv_virial = virial%pv_virial-virial%pv_xc
       ENDIF
-
+      WRITE(112,*) "INSIDE QS_KS_METHODS BEFORE CALLING HFX_KS_MATRIX()"
+      WRITE(112,*) "THIS WOULD BE EITHER ZERO OR KS_MATRIX FROM PREVIOUS ITERATION"
+      IF(deebugg == 1) THEN
+        CALL cp_dbcsr_write_sparse_matrix(ks_matrix(1, 1)%matrix, 4, after,qs_env, para_env, &
+                                       output_unit=iw,omit_headers=omit_headers)
+        CALL cp_dbcsr_write_sparse_matrix(ks_matrix(2, 1)%matrix, 4, after,qs_env,para_env, &
+                                       output_unit=iw,omit_headers=omit_headers)
+      END IF
       ! *** Add Hartree-Fock contribution if required ***
       IF (do_hfx) THEN
-         !WRITE(iw, FMT="(A)")&
-         !   "##IN build_kohn_sham_matrix():: Calling hfx_ks_matrix() \n &
-         !   &Exchange calculation, same as hondo, Manuel Guidon paper"
          CALL hfx_ks_matrix(qs_env, ks_matrix, rho, energy, calculate_forces, &
-                            just_energy, v_rspace_new, v_tau_rspace, calc_vab=first_iter_exc)
+                            just_energy, v_rspace_new, v_tau_rspace)
 !!    Adiabatic rescaling  only if do_hfx; right?????
       END IF !do_hfx
-      IF(split_energy) THEN
-        IF(iw>0) WRITE(iw, *) "iv). EXCHANGE ENERGY ", energy%ex + energy%exc + energy%exc1
-        IF(iw>0) WRITE(iw, *) "v). POTENTIAL ENERGY FROM CORE HAMILTONIAN ", energy%core - energy%kinetic
-        IF(iw>0) WRITE(iw, *) "vi). KINETIC ENERGY ", energy%kinetic
-        IF(iw>0) WRITE(iw, *) "vii). SELF ENERGY ", energy%core_self
-        IF(iw>0) WRITE(iw, *) "     "
-        IF(iw>0) WRITE(iw, *) "E_NUC is ", nuc_pw+nuc_1c+energy%core_self  
-        IF(iw>0) WRITE(iw, *) "     "
+      WRITE(112,*) "INSIDE QS_KS_METHODS AFTER COMING OUT OF HFX_KS_MATRIX"
+      WRITE(112,*) "THIS WOULD BE EXCHANGE+CORE_HAMILTONIAN K+H0"
+      IF(deebugg == 1) THEN
+        CALL cp_dbcsr_write_sparse_matrix(ks_matrix(1, 1)%matrix, 4, after,qs_env, para_env, &
+                                       output_unit=iw,omit_headers=omit_headers)
+        CALL cp_dbcsr_write_sparse_matrix(ks_matrix(2, 1)%matrix, 4, after,qs_env,para_env, &
+                                       output_unit=iw,omit_headers=omit_headers)
       END IF
       IF (do_ppl .AND. calculate_forces) THEN
          CPASSERT(.NOT. gapw)
@@ -797,7 +651,6 @@ CONTAINS
       END IF
 
       IF (ASSOCIATED(rho_nlcc) .AND. calculate_forces) THEN
-         !WRITE(112,*) "Check on line 636"
          DO ispin = 1, nspins
             CALL integrate_rho_nlcc(v_rspace_new(ispin), qs_env)
             IF (dft_control%do_admm) CALL integrate_rho_nlcc(v_rspace_new_aux_fit(ispin), qs_env)
@@ -819,7 +672,6 @@ CONTAINS
 
       ! ***  Single atom contributions ***
       IF (.NOT. just_energy) THEN
-!Doesn't go into this in our case
          IF (calculate_forces) THEN
             ! Getting nuclear force contribution from the core charge density
             IF ((poisson_env%parameters%solver .EQ. pw_poisson_implicit) .AND. &
@@ -845,12 +697,17 @@ CONTAINS
             END DO
          END IF
 
+         WRITE(112,*) "INSIDE QS_KS_METHODS BEFORE SUMMING UP THE POTENTIALS AND DENSITIES FROM POISSON"
+         WRITE(112,*) "(LABELED UNDER SINGLE ATOM CONTRIBUTIONS)"
+         IF(deebugg == 1) THEN
+                CALL cp_dbcsr_write_sparse_matrix(ks_matrix(1, 1)%matrix, 4, after,qs_env, para_env, &
+                                       output_unit=iw,omit_headers=omit_headers)
+                CALL cp_dbcsr_write_sparse_matrix(ks_matrix(2, 1)%matrix, 4, after,qs_env,para_env, &
+                                       output_unit=iw,omit_headers=omit_headers)
+         END IF
          ! sum up potentials and integrate
          ! Pointing my_rho to the density matrix rho_ao
          my_rho => rho_ao
-         !IF(iw>0) WRITE(iw, FMT="(A)")&
-         !         "IN build_kohn_sham_matrix() CALLING sum_up_and_integrate&
-         !          &which updates the KS matrix"
          CALL sum_up_and_integrate(qs_env, ks_matrix, rho, my_rho, vppl_rspace, &
                                    v_rspace_new, v_rspace_new_aux_fit, v_tau_rspace, v_tau_rspace_aux_fit, &
                                    v_efield_rspace, v_sic_rspace, v_spin_ddapc_rest_r, v_sccs_rspace, v_rspace_embed, &
@@ -919,21 +776,25 @@ CONTAINS
       IF (dft_control%do_sccs) THEN
          CALL pw_pool_give_back_pw(auxbas_pw_pool, v_sccs_rspace%pw)
       END IF
-
+      
       IF (gapw) THEN
          IF (dft_control%apply_external_potential) THEN
             ! Integrals of the Hartree potential with g0_soft
             CALL qmmm_modify_hartree_pot(v_hartree=v_hartree_rspace, &
                                          v_qmmm=vee, scale=-1.0_dp)
          ENDIF
-         !WRITE(112,*) "Integrate vhg0_rspace:line 762"
          CALL integrate_vhg0_rspace(qs_env, v_hartree_rspace, calculate_forces)
       END IF
 
-      IF(iw>0 .AND. split_energy) WRITE(iw, FMT="(A)")&
-                  "IN build_kohn_sham_matrix() CALLING qs_ks_atom(),&
-                  &updates single atom contributions due to gapw"
-
+      WRITE(112,*) "INSIDE QS_KS_METHODS BEFORE UPDATING SINGLE ATOM CONTRIBUTIONS BECAUSE OF GAPW (calls update_ks_atom)"
+      WRITE(112,*) "INTEGRATE_VHG0_RSPACE IS CALLED JUST BEFORE THIS STEP BUT IT CHANGES NOTHING AS CAN BE SEEN BELOW"
+      WRITE(112,*) " The correction to the KS matrix due to the GAPW local terms to the hartree and XC contributions is here added."
+      IF(deebugg == 1) THEN
+        CALL cp_dbcsr_write_sparse_matrix(ks_matrix(1, 1)%matrix, 4, after,qs_env, para_env, &
+                                       output_unit=iw,omit_headers=omit_headers)
+        CALL cp_dbcsr_write_sparse_matrix(ks_matrix(2, 1)%matrix, 4, after,qs_env,para_env, &
+                                       output_unit=iw,omit_headers=omit_headers)
+      END IF
       IF (gapw .OR. gapw_xc) THEN
          ! Single atom contributions in the KS matrix ***
          CALL update_ks_atom(qs_env, ks_matrix, rho_ao, calculate_forces)
@@ -944,7 +805,7 @@ CONTAINS
                                     ks_matrix, matrix_s, rho, mulliken_order_p)
 
       ! Add DFT+U contribution, if requested
-      IF (dft_control%dft_plus_u .AND. (.NOT. split_energy)) THEN
+      IF (dft_control%dft_plus_u) THEN
          CPASSERT(nimages == 1)
          IF (just_energy) THEN
             CALL plus_u(qs_env=qs_env)
@@ -963,7 +824,13 @@ CONTAINS
                               dft_control%qs_control%eps_filter_matrix)
          END DO
       ENDDO
-
+      WRITE(112,*) "INSIDE QS_KS_METHODS WHEN THE KS MATRIX IS UP-TO-DATE WITH ALL CONTRIBUTIONS"
+      IF(deebugg == 1) THEN
+        CALL cp_dbcsr_write_sparse_matrix(ks_matrix(1, 1)%matrix, 4, after,qs_env, para_env, &
+                                       output_unit=iw,omit_headers=omit_headers)
+        CALL cp_dbcsr_write_sparse_matrix(ks_matrix(2, 1)%matrix, 4, after,qs_env,para_env, &
+                                       output_unit=iw,omit_headers=omit_headers)      !! Print some memeory information if this is the first step
+      END IF
       !** merge the auxiliary KS matrix and the primary one
       IF (dft_control%do_admm_mo) THEN
          IF (qs_env%run_rtp) THEN
@@ -1013,6 +880,7 @@ CONTAINS
          END DO
          CALL mp_sum(ecore_ppl, para_env%group)
          energy%core = energy%core+ecore_ppl
+         WRITE(112,*) "ecore_ppl: ",ecore_ppl
       END IF
 
       IF (lrigpw) THEN
@@ -1027,121 +895,33 @@ CONTAINS
             energy%core = energy%core+ecore_ppl
          END IF
       END IF
-      nuc_elec_attrac = energy%hartree - nuc_pw - elec_pw &
-                        + energy%hartree_1c - nuc_1c - elec_1c &
-                        + energy%core - energy%kinetic - energy%core_overlap
-      e_nuc = nuc_pw + nuc_1c + energy%core_self
-      IF(split_energy) THEN
-        !WRITE(120,*) "elec_1c + elec_pw + energy%ex + energy%exc + energy%exc1 &
-        !       + energy%dft_plus_u + nuc_elec_attrac + energy%kinetic", &
-        !       elec_1c, elec_pw, energy%ex, energy%exc, energy%exc1, &
-        !       energy%dft_plus_u, nuc_elec_attrac, energy%kinetic
-        !Electronic ener = J2 + K2 + potential_1e + Kinetic_1e
-        hxx =  elec_1c + elec_pw + energy%ex + nuc_elec_attrac + energy%kinetic
-      ELSE
-        hxx = 1000.0_dp
-      END IF 
-      !WRITE(120,*) "3. haa, hbb is", haa, hbb
-      IF(calc_vab) THEN
-        k2ab = -k2ab + energy%ex 
-        k2ab = k2ab*dtprod/dhprod
-        h1_ab = nuc_elec_attrac + energy%kinetic 
-        h1_ab = dtprod*h1_ab
-        h2_ab = j2_ab + k2ab
-        hab = h1_ab + h2_ab
-        hxx = hab - k2ab
-        s_ab = dtprod*dhprod
-        IF(haa == 10000) THEN
-           haa = hbb
-        END IF
-        V_ab = (1.0_dp/(1.0_dp-s_ab*s_ab))*SQRT(0.25_dp*(haa - hbb)*(haa - hbb) - (haa + hbb)*hab*s_ab + &
-                                       haa*hbb*s_ab*s_ab + hab*hab)
-        habs_ab = hab*s_ab
-        a_coeff = 1.0_dp - s_ab*s_ab
-        b_coeff = -(haa + hbb - habs_ab - habs_ab)
-        c_coeff = haa*hbb - hab*hab
-        delta  = b_coeff*b_coeff - (4.0_dp)*a_coeff*c_coeff
-        IF(delta .LT. 0.0) STOP 'delta CANNOT BE negative, check b^2-4ac in qs_ks_methods Line 1042'
-        sdel   = SQRT(delta)
-        E_upper = (-b_coeff + sdel)/(2*a_coeff)
-        E_lower = (-b_coeff - sdel)/(2*a_coeff)
-        half_sp =            sdel /(2*a_coeff)
+      WRITE (111, *) "Energy contributions"
+      WRITE (111, *) "core_overlap", energy%core_overlap
+      WRITE (111, *) "core_self", energy%core_self
+      WRITE (111, *) "core", energy%core
+      WRITE (111, *) "hartree", energy%hartree
+      WRITE (111, *) "hartree_1c", energy%hartree_1c
+      WRITE (111, *) "exc", energy%exc
+      WRITE (111, *) "exc1", energy%exc1
+      WRITE (111, *) "ex", energy%ex
+      WRITE (111, *) "dispersion", energy%dispersion
+      WRITE (111, *) "qmmm_el", energy%qmmm_el
+      WRITE (111, *) "mulliken", energy%mulliken
+      WRITE (111, *) "ddapc_restraint", SUM(energy%ddapc_restraint)
+      WRITE (111, *) "s2_restraint", energy%s2_restraint
+      WRITE (111, *) "becke", energy%becke
+      WRITE (111, *) "dft_plus_u", energy%dft_plus_u
+      WRITE (111, *) "kTS", energy%kTS
+      WRITE (111, *) "efield", energy%efield
+      WRITE (111, *) "efield_core", energy%efield_core
+      WRITE (111, *) "ee", energy%ee
+      WRITE (111, *) "ee_core", energy%ee_core
+      WRITE (111, *) "exc_aux_fit", energy%exc_aux_fit
+      WRITE (111, *) "image_charge", energy%image_charge
+      WRITE (111, *) "sccs_pol", energy%sccs_pol
+      WRITE (111, *) "sccs_mpc", energy%sccs_mpc
+      WRITE (111, *) "cdft", energy%cdft
 
-        IF(iw>0) WRITE(iw,*) "########################"
-        IF(iw>0) WRITE(iw,*) "#########  ET  #########"
-        IF(iw>0) WRITE(iw,*) "------------------------"
-        IF(iw>0) WRITE(iw,*) "E_NUC", e_nuc
-        IF(iw>0) WRITE(iw,*) "HAA <a|H|a>", haa
-        IF(iw>0) WRITE(iw,*) "HBB <b|H|b>", hbb
-        IF(iw>0) WRITE(iw,*) "            "
-        IF(iw>0) WRITE(iw,*) "<a|H1|b>", h1_ab
-        IF(iw>0) WRITE(iw,*) "<a|H2|b>", h2_ab
-        IF(iw>0) WRITE(iw,*) "...<a|J2|b>", j2_ab
-        IF(iw>0) WRITE(iw,*) "...<a|K2|b>", k2ab
-        IF(iw>0) WRITE(iw,*) "HAB <a|H|b>", h1_ab+h2_ab
-        IF(iw>0) WRITE(iw,*) "SAB", s_ab
-        IF(iw>0) WRITE(iw,*) "VAB", V_ab
-        IF(iw>0) WRITE(iw,*) " VAB in different units "
-        IF(iw>0) WRITE(iw,*) "------------------------"
-        IF(iw>0) WRITE(iw,*) "      ", V_ab*evolt, "eV"
-        IF(iw>0) WRITE(iw,*) "      ", V_ab*wavenumbers, "1/cm"
-        IF(iw>0) WRITE(iw,*) "      ", V_ab*kcalmol, "kcal/mol"
-        IF(iw>0) WRITE(iw,*) "      ", V_ab*kjmol, "kJ/mol"
-        IF(iw>0) WRITE(iw,*) "      ", V_ab*hertz, "Hertz"
-        IF(iw>0) WRITE(iw,*) "------------------------"
-        IF(iw>0) WRITE(iw,*) "------------------------"
-        IF(iw>0) WRITE(iw,*) "E+", E_upper
-        IF(iw>0) WRITE(iw,*) "E-", E_lower
-        IF(iw>0) WRITE(iw,*) "(E+ - E-)/2", half_sp
-        IF(iw>0) WRITE(iw,*) "      ", half_sp*evolt, "eV"
-        IF(iw>0) WRITE(iw,*) "      ", half_sp*wavenumbers, "1/cm"
-        IF(iw>0) WRITE(iw,*) "      ", half_sp*kcalmol, "kcal/mol"
-        IF(iw>0) WRITE(iw,*) "      ", half_sp*kjmol, "kJ/mol"
-        IF(iw>0) WRITE(iw,*) "      ", half_sp*hertz, "Hertz"
-        IF(iw>0) WRITE(iw,*) "------------------------"
-        IF(iw>0) WRITE(iw,*) "------------------------"
-      END IF
-      IF(.TRUE.) THEN
-        WRITE (111, *) "Energy contributions"
-        WRITE (111, *) "core_overlap", energy%core_overlap
-        WRITE (111, *) "core_self", energy%core_self
-        WRITE (111, *) "core", energy%core
-        WRITE (111, *) "hartree", energy%hartree
-        WRITE (111, *) "hartree_1c", energy%hartree_1c
-        WRITE (111, *) "exc", energy%exc
-        WRITE (111, *) "exc1", energy%exc1
-        WRITE (111, *) "ex", energy%ex
-        WRITE (111, *) "dispersion", energy%dispersion
-        WRITE (111, *) "qmmm_el", energy%qmmm_el
-        WRITE (111, *) "mulliken", energy%mulliken
-        WRITE (111, *) "ddapc_restraint", SUM(energy%ddapc_restraint)
-        WRITE (111, *) "s2_restraint", energy%s2_restraint
-        WRITE (111, *) "becke", energy%becke
-        WRITE (111, *) "dft_plus_u", energy%dft_plus_u
-        WRITE (111, *) "kTS", energy%kTS
-        WRITE (111, *) "efield", energy%efield
-        WRITE (111, *) "efield_core", energy%efield_core
-        WRITE (111, *) "ee", energy%ee
-        WRITE (111, *) "ee_core", energy%ee_core
-        WRITE (111, *) "exc_aux_fit", energy%exc_aux_fit
-        WRITE (111, *) "image_charge", energy%image_charge
-        WRITE (111, *) "sccs_pol", energy%sccs_pol
-        WRITE (111, *) "sccs_mpc", energy%sccs_mpc
-        WRITE (111, *) "cdft", energy%cdft
-      END IF
-      IF(iw>0 .AND. split_energy) WRITE(iw, FMT="(A)") &
-                    "Inside build_kohn_sham_matrix() &
-                    after doing all function calls and evaluating energy"
-      IF(split_energy) THEN
-      DO ispin = 1, dft_control%nspins
-      !   CALL cp_dbcsr_write_sparse_matrix(rho_print(ispin)%matrix, 4, after,qs_env, &
-      !                                     para_env, output_unit=iw,omit_headers=omit_headers)
-      END DO
-      !CALL cp_dbcsr_write_sparse_matrix(ks_matrix(1, 1)%matrix, 4,after,qs_env, para_env, &
-      !                               output_unit=iw,omit_headers=omit_headers)
-      !CALL cp_dbcsr_write_sparse_matrix(ks_matrix(2, 1)%matrix, 4,after,qs_env,para_env, &
-      !                               output_unit=iw,omit_headers=omit_headers)
-      END IF
       ! Sum all energy terms to obtain the total energy
       energy%total = energy%core_overlap+energy%core_self+energy%core+energy%hartree+ &
                      energy%hartree_1c+energy%exc+energy%exc1+energy%ex+ &
@@ -1173,12 +953,12 @@ CONTAINS
 !> \param rho ...
 !> \param skip_nuclear_density ...
 ! **************************************************************************************************
-   SUBROUTINE calc_rho_tot_gspace(rho_tot_gspace, qs_env, rho, skip_nuclear_density,calls)
+   SUBROUTINE calc_rho_tot_gspace(rho_tot_gspace, qs_env, rho, skip_nuclear_density)
       TYPE(pw_p_type), INTENT(INOUT)                     :: rho_tot_gspace
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(qs_rho_type), POINTER                         :: rho
       LOGICAL, INTENT(IN), OPTIONAL                      :: skip_nuclear_density
-      INTEGER,OPTIONAL                                   :: calls
+
       CHARACTER(*), PARAMETER :: routineN = 'calc_rho_tot_gspace', &
          routineP = moduleN//':'//routineN
 
@@ -1188,11 +968,13 @@ CONTAINS
       TYPE(pw_p_type), DIMENSION(:), POINTER             :: rho_g
       TYPE(pw_p_type), POINTER                           :: rho0_s_gs, rho_core
       TYPE(qs_charges_type), POINTER                     :: qs_charges
+
       my_skip = .FALSE.
       IF (PRESENT(skip_nuclear_density)) my_skip = skip_nuclear_density
 
       CALL qs_rho_get(rho, rho_g=rho_g)
       CALL get_qs_env(qs_env=qs_env, dft_control=dft_control)
+
       IF (.NOT. my_skip) THEN
          NULLIFY (rho_core)
          CALL get_qs_env(qs_env=qs_env, rho_core=rho_core)
@@ -1204,7 +986,6 @@ CONTAINS
             IF (dft_control%qs_control%gapw_control%nopaw_as_gpw) THEN
                CALL pw_axpy(rho_core%pw, rho_tot_gspace%pw)
             END IF
-            !"nopaw_as_gpw is false and core is not added for my gapw runs"
          ELSE
             CALL pw_copy(rho_core%pw, rho_tot_gspace%pw)
          END IF
@@ -1214,12 +995,11 @@ CONTAINS
          CALL get_qs_env(qs_env=qs_env, qs_charges=qs_charges)
          qs_charges%total_rho_gspace = pw_integrate_function(rho_tot_gspace%pw, isign=-1)
       ELSE
-         WRITE(112,*) "if myskip is true"
          DO ispin = 1, dft_control%nspins
             CALL pw_axpy(rho_g(ispin)%pw, rho_tot_gspace%pw)
          END DO
       END IF
-      
+
    END SUBROUTINE calc_rho_tot_gspace
 
 ! **************************************************************************************************
@@ -1353,56 +1133,28 @@ CONTAINS
 !> \author Fawzi Mohamed
 ! **************************************************************************************************
    SUBROUTINE qs_ks_update_qs_env(qs_env, calculate_forces, just_energy, &
-                                  print_active, calc_vab, dtprod, dhprod,&
-                                  k2ab, hxx, haa, hbb, split_energy, first_iter_exc)
+                                  print_active)
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL, INTENT(IN), OPTIONAL                      :: calculate_forces, just_energy, &
-                                                            print_active, calc_vab, &
-                                                            split_energy, first_iter_exc 
-      REAL(KIND=dp), INTENT(IN), OPTIONAL                :: dtprod, dhprod, k2ab, haa, hbb
-      REAL(KIND=dp), INTENT(OUT), OPTIONAL               :: hxx
+                                                            print_active
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_ks_update_qs_env', &
          routineP = moduleN//':'//routineN
 
-      INTEGER                                            :: handle,unit_nr,iw,after,before
+      INTEGER                                            :: handle, unit_nr
       LOGICAL                                            :: c_forces, do_rebuild, energy_only, &
                                                             forces_up_to_date, potential_changed, &
-                                                            rho_changed, s_mstruct_changed,emit_headers, &
-                                                            vab_calc, omit_headers, split_ener, first_iter_e
+                                                            rho_changed, s_mstruct_changed
       TYPE(qs_ks_env_type), POINTER                      :: ks_env
-      TYPE(cp_logger_type), POINTER                      :: logger
-      TYPE(cp_para_env_type), POINTER                    :: para_env
-      TYPE(qs_rho_type), POINTER                         :: rho
-      TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: rho_ao
-      REAL(KIND=dp)                                      :: dt_prod, dh_prod, k2_ab, h_xx, h_aa, h_bb
 
       NULLIFY (ks_env)
       unit_nr = cp_logger_get_default_io_unit()
-      logger => cp_get_default_logger()
-      
-     
+
       c_forces = .FALSE.
       energy_only = .FALSE.
-      vab_calc = .FALSE.
-      split_ener = .FALSE.
-      first_iter_e = .FALSE.
-      dt_prod = 0.0_dp
-      dh_prod = 0.0_dp
-      k2_ab = 0.0_dp
-      h_xx = 0.0_dp
-      h_aa = 10000.0_dp
-      h_bb = 10000.0_dp
       IF (PRESENT(just_energy)) energy_only = just_energy
       IF (PRESENT(calculate_forces)) c_forces = calculate_forces
-      IF (PRESENT(calc_vab)) vab_calc = calc_vab
-      IF(PRESENT(dtprod)) dt_prod = dtprod
-      IF(PRESENT(dhprod)) dh_prod = dhprod
-      IF(PRESENT(k2ab)) k2_ab = k2ab
-      IF(PRESENT(split_energy)) split_ener = split_energy
-      IF(PRESENT(first_iter_exc)) first_iter_e = first_iter_exc
-      IF(PRESENT(haa)) h_aa = haa
-      IF(PRESENT(hbb)) h_bb = hbb
+
       IF (c_forces) THEN
          CALL timeset(routineN//'_forces', handle)
       ELSE
@@ -1416,35 +1168,25 @@ CONTAINS
                       rho_changed=rho_changed, &
                       s_mstruct_changed=s_mstruct_changed, &
                       potential_changed=potential_changed, &
-                      forces_up_to_date=forces_up_to_date, &
-                      para_env=para_env, rho=rho)
+                      forces_up_to_date=forces_up_to_date)
+
       do_rebuild = .FALSE.
       do_rebuild = do_rebuild .OR. rho_changed
       do_rebuild = do_rebuild .OR. s_mstruct_changed
       do_rebuild = do_rebuild .OR. potential_changed
       do_rebuild = do_rebuild .OR. (c_forces .AND. .NOT. forces_up_to_date)
-      CALL section_vals_val_get(qs_env%input, "DFT%PRINT%AO_MATRICES%OMIT_HEADERS",l_val=omit_headers)
-      CALL section_vals_val_get(qs_env%input,"DFT%PRINT%AO_MATRICES%NDIGITS",i_val=after)
-      after=MIN(MAX(after,1),16)
-      iw = cp_print_key_unit_nr(logger,qs_env%input,"DFT%SCF%PRINT%ITERATION_INFO", &
-                                   extension=".scfLog")
-      CALL qs_rho_get(rho, rho_ao=rho_ao)
-      before=4
-      !WRITE(170,*) "DTPROD, DHPROD", dt_prod, dh_prod
+
       IF (do_rebuild) THEN
-        ! IF (vab_calc) STOP 'before evaluate core matrix traces'
-         CALL evaluate_core_matrix_traces(qs_env, vab_calc)
+         CALL evaluate_core_matrix_traces(qs_env)
 
          ! the ks matrix will be rebuilt so this is fine now
          CALL set_ks_env(ks_env, potential_changed=.FALSE.)
-         !WRITE(120,*) "1. h_aa, h_bb is", h_aa, h_bb
+         WRITE(112,*) "Before rebuild_ks_matrix"
          CALL rebuild_ks_matrix(qs_env, &
                                 calculate_forces=c_forces, &
                                 just_energy=energy_only, &
-                                print_active=print_active, calc_vab=vab_calc, dtprod=dt_prod, &
-                                dhprod=dh_prod, k2ab=k2_ab, hxx=h_xx, haa=h_aa, hbb=h_bb, &
-                                split_energy=split_ener,first_iter_exc=first_iter_e)
-         IF(PRESENT(hxx)) hxx = h_xx
+                                print_active=print_active)
+         WRITE(112,*) "After rebuild_ks_matrix"
          IF (.NOT. energy_only) THEN
 
             CALL set_ks_env(ks_env, &
@@ -1453,7 +1195,7 @@ CONTAINS
                             forces_up_to_date=forces_up_to_date .OR. c_forces)
          END IF
       END IF
-
+      WRITE(112,*) "In subroutine qs_ks_update_qs_env"
       CALL timestop(handle)
 
    END SUBROUTINE qs_ks_update_qs_env
@@ -1463,16 +1205,14 @@ CONTAINS
 !> \param qs_env ...
 !> \author Ole Schuett
 ! **************************************************************************************************
-   SUBROUTINE evaluate_core_matrix_traces(qs_env, calc_vab)
+   SUBROUTINE evaluate_core_matrix_traces(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
-      LOGICAL, INTENT(IN), OPTIONAL                      :: calc_vab
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'evaluate_core_matrix_traces', &
          routineP = moduleN//':'//routineN
 
-      INTEGER                                            :: handle, ic
-      TYPE(dbcsr_p_type), DIMENSION(:, :), POINTER       :: matrixkp_h, matrixkp_t, rho_ao_kp, &
-                                                            tmp_mat1, tmp_mat2
+      INTEGER                                            :: handle
+      TYPE(dbcsr_p_type), DIMENSION(:, :), POINTER       :: matrixkp_h, matrixkp_t, rho_ao_kp
       TYPE(dft_control_type), POINTER                    :: dft_control
       TYPE(qs_energy_type), POINTER                      :: energy
       TYPE(qs_rho_type), POINTER                         :: rho
@@ -1488,13 +1228,15 @@ CONTAINS
                       matrix_h_kp=matrixkp_h)
 
       CALL qs_rho_get(rho, rho_ao_kp=rho_ao_kp)
+
       CALL calculate_ptrace(matrixkp_h, rho_ao_kp, energy%core, dft_control%nspins)
 
-         ! kinetic energy
+      ! kinetic energy
       IF (ASSOCIATED(matrixkp_t)) &
-          CALL calculate_ptrace(matrixkp_t, rho_ao_kp, energy%kinetic, dft_control%nspins)
-      !WRITE(170,*) "energy%core, energy%kinetic",energy%core, energy%kinetic
-      !END IF
+         CALL calculate_ptrace(matrixkp_t, rho_ao_kp, energy%kinetic, dft_control%nspins)
+      WRITE(112,*) "In subroutine evaluate_core_matrix_traces"
+      WRITE(112,*) "energies ecore, eoverlap,eself", energy%core,energy%core_overlap, energy%core_self
+
       CALL timestop(handle)
    END SUBROUTINE evaluate_core_matrix_traces
 
@@ -1506,15 +1248,10 @@ CONTAINS
 !> \param print_active ...
 !> \author Ole Schuett
 ! **************************************************************************************************
-   SUBROUTINE rebuild_ks_matrix(qs_env, calculate_forces, just_energy, print_active, &
-                                calc_vab, dtprod, dhprod, k2ab, hxx, haa, hbb, &
-                                split_energy, first_iter_exc)
+   SUBROUTINE rebuild_ks_matrix(qs_env, calculate_forces, just_energy, print_active)
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL, INTENT(IN)                                :: calculate_forces, just_energy
-      LOGICAL, INTENT(IN), OPTIONAL                      :: print_active, calc_vab, &
-                                                            split_energy, first_iter_exc
-      REAL(KIND=dp), INTENT(IN), OPTIONAL                :: dtprod, dhprod, k2ab, haa, hbb
-      REAL(KIND=dp), INTENT(OUT), OPTIONAL               :: hxx
+      LOGICAL, INTENT(IN), OPTIONAL                      :: print_active
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'rebuild_ks_matrix', &
          routineP = moduleN//':'//routineN
@@ -1524,8 +1261,9 @@ CONTAINS
 
       CALL timeset(routineN, handle)
       NULLIFY (dft_control)
-      !WRITE(170,*) "in rebuild DTPROD, DHPROD", dtprod, dhprod
+      WRITE(112,*) "ENETERED REBUILD_KS_MATRIX"
       CALL get_qs_env(qs_env, dft_control=dft_control)
+
       IF (dft_control%qs_control%semi_empirical) THEN
          CALL build_se_fock_matrix(qs_env, &
                                    calculate_forces=calculate_forces, &
@@ -1537,14 +1275,11 @@ CONTAINS
                                    just_energy=just_energy)
 
       ELSE
-         !WRITE(120,*) "2. haa, hbb is", haa, hbb
+         WRITE(112,*)"DURING SCF ITERATIONS rebuilding KS matrix"
          CALL qs_ks_build_kohn_sham_matrix(qs_env, &
                                            calculate_forces=calculate_forces, &
                                            just_energy=just_energy, &
-                                           print_active=print_active,&
-                                           calc_vab=calc_vab, dtprod=dtprod, dhprod=dhprod, &
-                                           k2ab=k2ab, hxx=hxx, haa=haa, hbb=hbb, &
-                                           split_energy=split_energy,first_iter_exc=first_iter_exc)
+                                           print_active=print_active)
       END IF
 
       CALL timestop(handle)

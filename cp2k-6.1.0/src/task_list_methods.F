@@ -135,7 +135,7 @@ CONTAINS
       INTEGER, DIMENSION(:), POINTER                     :: la_max, la_min, lb_max, lb_min, npgfa, &
                                                             npgfb
       INTEGER, DIMENSION(:, :, :), POINTER               :: cell_to_index
-      LOGICAL                                            :: dokp, my_soft
+      LOGICAL                                            :: dokp, my_soft, symmetric
       REAL(KIND=dp)                                      :: kind_radius_a, kind_radius_b
       REAL(KIND=dp), DIMENSION(3)                        :: ra, rab
       REAL(KIND=dp), DIMENSION(:), POINTER               :: set_radius_a, set_radius_b
@@ -169,7 +169,8 @@ CONTAINS
                       qs_kind_set=qs_kind_set, &
                       cell=cell, &
                       particle_set=particle_set, &
-                      dft_control=dft_control)
+                      dft_control=dft_control, &
+                      symmetry=symmetric)
 
       IF (PRESENT(basis_type)) THEN
          my_basis_type = basis_type
@@ -289,7 +290,7 @@ CONTAINS
       CALL distribute_tasks( &
          rs_descs, task_list%ntasks, natoms, maxset, maxpgf, nimages, &
          task_list%tasks, rval=task_list%dist_ab, atom_pair_send=task_list%atom_pair_send, &
-         atom_pair_recv=task_list%atom_pair_recv, symmetric=.TRUE., &
+         atom_pair_recv=task_list%atom_pair_recv, symmetric=symmetric, &
          reorder_rs_grid_ranks=reorder_rs_grid_ranks, skip_load_balance_distributed=skip_load_balance_distributed)
 
       ! If the rank order has changed, reallocate any of the distributed rs_grids
@@ -890,7 +891,6 @@ CONTAINS
       image = INT(img)
       iatom = INT(iatom8); jatom = INT(jatom8); iset = INT(iset8); jset = INT(jset8)
       ipgf = INT(ipgf8); jpgf = INT(jpgf8)
-
    END SUBROUTINE int2pair
 
 ! **************************************************************************************************
@@ -2154,6 +2154,7 @@ CONTAINS
             arow = iatom
             acol = jatom
          ENDIF
+         !WRITE(160,*) "iatom, jatom, symmetric", iatom, jatom, symmetric
          IF (send) THEN
             ! If sending, we need to use the 'real rank' as the pair has to be sent to the process which
             ! actually has the correct part of the rs_grid to do the mapping

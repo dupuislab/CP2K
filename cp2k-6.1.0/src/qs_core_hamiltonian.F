@@ -389,6 +389,7 @@ CONTAINS
          CALL create_oce_set(oce)
          nkind = SIZE(atomic_kind_set)
          CALL allocate_oce_set(oce, nkind)
+         !WRITE(112,*) "SAP_OCE:",ASSOCIATED(sap_oce)
          eps_fit = dft_control%qs_control%gapw_control%eps_fit
          IF (ASSOCIATED(sap_oce)) &
             CALL build_oce_matrices(oce%intac, calculate_forces, nder, qs_kind_set, particle_set, &
@@ -500,6 +501,7 @@ CONTAINS
       ! *** compute the nuclear attraction contribution to the core hamiltonian ***
       all_present = ASSOCIATED(sac_ae)
       IF (all_present) THEN
+         !WRITE(112,*) "Inside qs_core_hamiltonian.F::subroutine core_matrices calling build_core_ae()"
          CALL build_core_ae(matrix_h, matrix_p, force, virial, calculate_forces, use_virial, nder, &
                             qs_kind_set, atomic_kind_set, particle_set, sab_orb, sac_ae, nimages, cell_to_index)
       END IF
@@ -507,6 +509,7 @@ CONTAINS
       ! *** compute the ppl contribution to the core hamiltonian ***
       ppl_present = ASSOCIATED(sac_ppl)
       IF (ppl_present) THEN
+         !WRITE(112,*) "Inside qs_core_hamiltonian.F::subroutine core_matrices calling build_core_ppl()"
          IF (dft_control%qs_control%do_ppl_method == do_ppl_analytic) THEN
             IF (dft_control%qs_control%lrigpw) THEN
                CALL get_qs_env(qs_env, lri_env=lri_env)
@@ -531,6 +534,7 @@ CONTAINS
       eps_ppnl = dft_control%qs_control%eps_ppnl
       ppnl_present = ASSOCIATED(sap_ppnl)
       IF (ppnl_present) THEN
+         !WRITE(112,*) "Inside qs_core_hamiltonian.F::subroutine core_matrices calling build_core_ppnl()"
          CALL build_core_ppnl(matrix_h, matrix_p, force, virial, calculate_forces, use_virial, nder, &
                               qs_kind_set, atomic_kind_set, particle_set, sab_orb, sap_ppnl, eps_ppnl, &
                               nimages, cell_to_index, "ORB")
