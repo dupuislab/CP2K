@@ -207,8 +207,7 @@ CONTAINS
    SUBROUTINE qs_ks_build_kohn_sham_matrix(qs_env, calculate_forces, just_energy, &
                                            print_active, ext_ks_matrix, &
                                            calc_vab, dtprod, dhprod, k2ab, hxx, haa, hbb, &
-                                           split_energy, first_iter_exc) !, j2_ab, &
-                                           !elec_pw, elec_1c, nuc_pw, nuc_1c, nuc_elec_attrac)
+                                           split_energy, first_iter_exc) 
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL, INTENT(in)                                :: calculate_forces, just_energy
       LOGICAL, INTENT(IN), OPTIONAL                      :: print_active, calc_vab, &
@@ -277,7 +276,6 @@ CONTAINS
                ks_matrix, rho, energy, rho_xc, rho_r, rho_ao, rho_core)
 
       CPASSERT(ASSOCIATED(qs_env))
-      !WRITE(170,*) "in qs_ks_build DTPROD, DHPROD", dtprod, dhprod
       logger => cp_get_default_logger()
       my_print = .TRUE.
       IF (PRESENT(print_active)) my_print = print_active
