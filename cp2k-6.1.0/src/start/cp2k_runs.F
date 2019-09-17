@@ -413,7 +413,7 @@ CONTAINS
       CALL cp_para_env_release(para_env)
       cp2k_run_OK = .TRUE.
       WRITE(*,*) "reached end of cp2k_run"
-      !STOP 'at the end of cp2k_run'
+      STOP 'at the end of cp2k_run'
    END FUNCTION cp2k_run
 
 ! **************************************************************************************************
