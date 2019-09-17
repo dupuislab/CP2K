@@ -1,0 +1,8 @@
+*meta
+slurmCP2K
+t_c_g.dat
+*wfn*
+*cube
+*restart*
+*Hessian
+*fort*

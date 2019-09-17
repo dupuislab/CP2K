@@ -1,0 +1,100 @@
+@SET PROJECT  p_fe_
+@SET RESFILE  p_fe_
+@SET RESFILE0 p_0_
+@SET RESFILE1 p_1_
+@SET RESTART 0
+@SET CELL_A 21.385
+@SET CELL_B 35
+@SET CELL_C 35
+@SET RUNTYPE ENERGY
+@SET OT_MINI CG
+@SET EPSSCF 1.0E-06
+
+
+&GLOBAL
+  PROJECT ${PROJECT}
+  RUN_TYPE ${RUNTYPE}
+  PRINT_LEVEL MEDIUM
+  EXTENDED_FFT_LENGTHS 
+  FLUSH_SHOULD_FLUSH T   
+&END GLOBAL
+
+&MULTIPLE_FORCE_EVALS
+  FORCE_EVAL_ORDER 1 2
+  MULTIPLE_SUBSYS F
+&END
+
+@SET XYZ   ./midpoint.xyz
+@include dft_0.inc
+@include dft_1.inc
+&FORCE_EVAL
+  METHOD MIXED
+  &MIXED
+    MIXING_TYPE GENMIX
+    NGROUPS  1
+    &VAB
+            DO_VAB
+            &HF
+              FRACTION 1.0
+              &INTERACTION_POTENTIAL
+                POTENTIAL_TYPE TRUNCATED
+                CUTOFF_RADIUS [angstrom]  10.6711
+                T_C_G_DATA ./t_c_g.dat
+              &END
+              &MEMORY
+                      MAX_MEMORY 5000
+              &END
+            &END
+    &END
+
+    &GENERIC
+      MIXING_FUNCTION E1-E2
+      VARIABLES E1 E2
+    &END
+  &END
+ &SUBSYS
+    &CELL
+   A   ${CELL_A}        0.0000000000        0.0000000000
+   B   0.0000000000       ${CELL_B}      0.0000000000
+   C   0.0000000000        0.0000000000      ${CELL_C}
+    &END CELL
+  &TOPOLOGY
+    COORD_FILE_FORMAT XYZ
+    COORD_FILE_NAME ${XYZ}
+  &END TOPOLOGY
+      &KIND Fe
+      ELEMENT Fe
+      BASIS_SET mod-DZV
+      POTENTIAL GTH-BLYP-q16
+      &DFT_PLUS_U
+         L 2
+         U_MINUS_J 0.25725
+      &END DFT_PLUS_U
+   &END KIND
+   &KIND O
+      BASIS_SET mod-DZV
+      POTENTIAL GTH-BLYP-q6
+   &END KIND
+
+   &KIND H
+      BASIS_SET mod-DZV
+      POTENTIAL GTH-BLYP-q1
+   &END KIND
+    &COLVAR
+       &U
+         &MIXED
+           ENERGY_FUNCTION E2-E1
+           VARIABLES E1 E2
+         &END
+       &END
+    &END COLVAR
+  &END SUBSYS
+&END FORCE_EVAL
+
+
+@if ${RESTART} == 1
+&EXT_RESTART
+  RESTART_FILE_NAME ${PROJECT}-1.restart
+  RESTART_DEFAULT T
+&END EXT_RESTART
+@endif
