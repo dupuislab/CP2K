@@ -1,0 +1,548 @@
+
+! **************************************************************************************************
+!> \brief Set occupation of molecular orbitals
+!> \par History
+!>      - module to calculate V_AB based on Farazdel, Dupuis, Clementi, Avram,JACS 1990
+!> \author  Pavan Behara
+! **************************************************************************************************
+
+MODULE vab
+   USE cp_blacs_env,                    ONLY: cp_blacs_env_release,&
+                                              cp_blacs_env_retain,&
+                                              cp_blacs_env_type
+   USE cp_log_handling,                 ONLY: cp_logger_type, cp_get_default_logger
+   USE cp_output_handling,              ONLY: cp_print_key_finished_output,&
+                                              cp_print_key_unit_nr,&
+                                              low_print_level
+   USE cp_para_env,                     ONLY: cp_para_env_release,&
+                                              cp_para_env_retain
+   USE cp_para_types,                   ONLY: cp_para_env_type
+   USE qs_ks_methods,                   ONLY: qs_ks_update_qs_env
+   USE qs_ks_types,                     ONLY: qs_ks_did_change,&
+                                              get_ks_env,&
+                                              qs_ks_env_type,&
+                                              set_ks_env
+   USE qs_mo_types,                     ONLY: get_mo_set,&
+                                              mo_set_p_type
+   USE qs_rho_types,                    ONLY: qs_rho_create,&
+                                              qs_rho_release,&
+                                              qs_rho_type,&
+                                              qs_rho_set,&
+                                              qs_rho_get
+   USE qs_rho_methods,                  ONLY: qs_rho_rebuild,&
+                                              qs_rho_update_rho
+   USE input_section_types,             ONLY: section_vals_get,&
+                                              section_vals_get_subs_vals,&
+                                              section_vals_type,&
+                                              section_vals_val_get
+   USE cp_gemm_interface,               ONLY: cp_gemm
+   USE cp_dbcsr_operations,             ONLY: copy_dbcsr_to_fm,&
+                                              copy_fm_to_dbcsr,&
+                                              cp_dbcsr_plus_fm_fm_t,&
+                                              cp_dbcsr_sm_fm_multiply,&
+                                              dbcsr_copy_columns_hack,&
+                                              cp_dbcsr_m_by_n_from_template
+   USE cp_fm_basic_linalg,              ONLY: cp_fm_column_scale,&
+                                              cp_fm_scale_and_add,&
+                                              cp_fm_symm,&
+                                              cp_fm_transpose,&
+                                              cp_fm_upper_to_full,&
+                                              cp_fm_gemm
+   USE cp_fm_struct,                    ONLY: cp_fm_struct_create,&
+                                              cp_fm_struct_release,&
+                                              cp_fm_struct_type,&
+                                              cp_fm_struct_get
+   USE cp_fm_types,                     ONLY: cp_fm_create,&
+                                              cp_fm_get_info,&
+                                              cp_fm_p_type,&
+                                              cp_fm_release,&
+                                              cp_fm_to_fm,&
+                                              cp_fm_type,&
+                                              cp_fm_write_formatted,&
+                                              cp_fm_to_fm,&
+                                              cp_fm_set_all,&
+                                              cp_fm_get_submatrix, &
+                                              cp_fm_set_submatrix
+   USE cp_log_handling,                 ONLY: cp_add_default_logger,&
+                                              cp_get_default_logger,&
+                                              cp_logger_type,&
+                                              cp_rm_default_logger,&
+                                              cp_to_string
+   USE lapack,                          ONLY: lapack_sgesvd
+   USE cp_para_types,                   ONLY: cp_para_env_type
+   USE dbcsr_api,                       ONLY: &
+        dbcsr_add, dbcsr_allocate_matrix_set, dbcsr_init_p, dbcsr_copy, dbcsr_create, dbcsr_filter, &
+        dbcsr_get_info, dbcsr_multiply, dbcsr_p_type, dbcsr_release, dbcsr_set, dbcsr_type, &
+        dbcsr_type_symmetric, dbcsr_print, dbcsr_type_no_symmetry, dbcsr_distribution_type, &
+        dbcsr_type_real_default, dbcsr_desymmetrize,dbcsr_distribution_new
+   USE cp_dbcsr_output,                 ONLY: cp_dbcsr_write_sparse_matrix
+   USE force_env_types,                 ONLY: &
+        force_env_get, force_env_get_natom, force_env_p_type, force_env_set, force_env_type, &
+        use_eip_force, use_embed, use_fist_force, use_mixed_force, use_prog_name, use_qmmm, &
+        use_qmmmx, use_qs_force
+   USE force_env_utils,                 ONLY: rescale_forces,&
+                                              write_forces,&
+                                              write_stress_tensor
+   USE kinds,                           ONLY: default_path_length,&
+                                              default_string_length,&
+                                              dp
+   USE qs_energy_types,                 ONLY: qs_energy_type
+   USE qs_environment_types,            ONLY: get_qs_env,&
+                                              qs_env_retain,&
+                                              qs_environment_type,&
+                                              set_qs_env
+   USE qs_force,                        ONLY: qs_calc_energy_force
+   USE qs_rho_types,                    ONLY: qs_rho_get,&
+                                              qs_rho_type
+   USE message_passing,                 ONLY: mp_sum,&
+                                              mp_sync, &
+                                              mp_cart_create,&
+                                              mp_comm_free,&
+                                              mp_environ,&
+                                              mp_world_finalize,&
+                                              mp_world_init
+   USE eigenvalueproblems,              ONLY: diagonalise
+   USE preconditioner_solvers,          ONLY: transfer_fm_to_dbcsr
+
+
+#include "./base/base_uses.f90"
+
+   IMPLICIT NONE
+
+   PRIVATE
+
+   CHARACTER(len=*), PARAMETER, PRIVATE :: moduleN = 'vab'
+
+   PUBLIC :: calculate_vab
+
+
+CONTAINS
+
+! **************************************************************************************************
+!> \brief  
+!>        
+!>
+!> \param 
+!> \param
+!> \date   
+!> \author
+!> \version 
+! **************************************************************************************************
+   SUBROUTINE calculate_vab(force_env)
+      TYPE(force_env_type), POINTER                      :: force_env
+      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_vab', &
+         routineP = moduleN//':'//routineN
+
+      INTEGER                                            :: nelectron_a_alfa, nelectron_a_beta, iw,&
+                                                            nelectron_b_alfa, nelectron_b_beta, &
+                                                            row_size, nao_a_alfa, nao_a_beta, &
+                                                            nao_b_alfa, nao_b_beta, nrowa, &
+                                                            ncola, err_info, lwork, i, j, &
+                                                            before, after, &
+                                                            nfullcols_total, nfullrows_total, &
+                                                            nblkrows_total, nblkcols_total, &
+                                                            group, numnodes, mynode, mp_comm
+      INTEGER, DIMENSION(:), POINTER                     :: row_blk_size, col_blk_size
+      LOGICAL                                            :: omit_headers
+      TYPE(cp_fm_type), POINTER                          :: mo_coeff_a_alfa, mo_coeff_a_beta,&
+                                                            mo_coeff_b_alfa, mo_coeff_b_beta, &
+                                                            matrix_s_fm, P_alfa_fm, P_beta_fm
+      TYPE(mo_set_p_type), DIMENSION(:), POINTER         :: mos_a, mos_b
+      TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: matrix_s, density_modified, matrix_ks
+      TYPE(qs_environment_type), POINTER                 :: qs_env_a, qs_env_b
+      INTEGER                                            :: nforce_eval
+      TYPE(cp_logger_type), POINTER                      :: logger
+      TYPE(qs_ks_env_type), POINTER                      :: ks_env
+      TYPE(cp_fm_struct_type), POINTER                   :: fm_struct_tmp, fm_struct_tmp2,&
+                                                            fm_struct_tmp3, fm_struct_tmp4
+      TYPE(cp_blacs_env_type), POINTER                   :: blacs_env, context_p
+      TYPE(cp_para_env_type), POINTER                    :: para_env
+      TYPE(qs_rho_type), POINTER                         :: rho 
+      REAL(kind=dp), DIMENSION(:,:), POINTER             :: matrix_tmp1, matrix_tmp2, &
+                                                            D_alfa, U_alfa, Vt_alfa, &
+                                                            D_beta, U_beta, Vt_beta, &
+                                                            A_alfa, A_beta, B_alfa, B_beta, &
+                                                            A_hat_alfa, B_hat_alfa, &
+                                                            A_hat_beta, B_hat_beta, &
+                                                            P_alfa, P_beta, tmp1, tmp2,&
+                                                            matrix_s_real
+      REAL(kind=dp), DIMENSION(:,:), POINTER             :: T_alfa, T_beta
+      REAL(kind=dp), DIMENSION(:), POINTER               :: diag_alfa, diag_beta, work
+      REAL(kind=dp)                                      :: d_prod_alfa, d_prod_beta
+      TYPE(dbcsr_distribution_type)                      :: distribution
+      TYPE(dbcsr_type), POINTER                          :: tmp_alfa, tmp_beta
+      CHARACTER                                          :: matrix_type
+      INTEGER, DIMENSION(2)                    :: npdims, myploc
+      INTEGER, DIMENSION(:), POINTER           :: col_dist, row_dist
+
+!      TYPE(global_environment_type), POINTER             :: globenv          
+
+      CPASSERT(ASSOCIATED(force_env))
+      !CALL force_env_get(force_env, globenv=globenv)
+      nforce_eval = SIZE(force_env%sub_force_env)
+      WRITE(124,*) "NFORCE_EVAL is ", nforce_eval
+      logger => cp_get_default_logger()
+      qs_env_a => force_env%sub_force_env(1)%force_env%qs_env
+      qs_env_b => force_env%sub_force_env(2)%force_env%qs_env
+      
+      CALL get_qs_env(qs_env=qs_env_a, mos=mos_a)
+      CALL get_qs_env(qs_env=qs_env_b, mos=mos_b, matrix_ks=matrix_ks, &
+                      ks_env=ks_env, blacs_env=blacs_env, para_env=para_env)
+ 
+      iw = cp_print_key_unit_nr(logger, qs_env_a%input,"DFT%SCF%PRINT%ITERATION_INFO", &
+                                   extension=".scfLog")
+
+      CALL get_mo_set(mos_a(1)%mo_set, mo_coeff=mo_coeff_a_alfa, nelectron=nelectron_a_alfa, nao=nao_a_alfa)
+      CALL get_mo_set(mos_a(2)%mo_set, mo_coeff=mo_coeff_a_beta, nelectron=nelectron_a_beta, nao=nao_a_beta)
+
+      CALL get_mo_set(mos_b(1)%mo_set, mo_coeff=mo_coeff_b_alfa, nelectron=nelectron_b_alfa, nao=nao_b_alfa)
+      CALL get_mo_set(mos_b(2)%mo_set, mo_coeff=mo_coeff_b_beta, nelectron=nelectron_b_beta, nao=nao_b_beta)
+
+
+      !overlap matrix = matrix_s
+      CALL get_ks_env(ks_env=ks_env, matrix_s=matrix_s)
+
+      CALL cp_fm_write_formatted(mo_coeff_a_alfa, iw,"mo_coeff_a_alfa")
+      CALL cp_fm_write_formatted(mo_coeff_a_beta, iw,"mo_coeff_a_beta")
+      CALL cp_fm_write_formatted(mo_coeff_b_alfa, iw,"mo_coeff_b_alfa")
+      CALL cp_fm_write_formatted(mo_coeff_b_beta, iw,"mo_coeff_b_beta")
+ 
+      CALL dbcsr_get_info(matrix_s(1)%matrix, nfullrows_total=nfullrows_total, &
+                         nfullcols_total=nfullcols_total, nblkrows_total=nblkrows_total, &
+                         nblkcols_total=nblkcols_total)
+      CALL cp_fm_struct_create(fm_struct_tmp, nrow_global=nfullrows_total, ncol_global=nfullcols_total, &
+                                nrow_block=nblkrows_total, ncol_block=nblkcols_total,&
+                                context=blacs_env, para_env=para_env)
+      CALL cp_fm_create(matrix_s_fm, matrix_struct=fm_struct_tmp)
+      CALL copy_dbcsr_to_fm(matrix_s(1)%matrix, matrix_s_fm)
+     
+
+      !CALL cp_fm_struct_create(fm_struct_tmp2, nrow_global=nelectron_b_alfa, ncol_global=nao_b_alfa, &
+      !                            context=blacs_env, para_env=para_env)
+      !  !                             context=mos_b(1)%mo_set%mo_coeff%matrix_struct%context,&
+      !   !                            para_env=mos_b(1)%mo_set%mo_coeff%matrix_struct%context%para_env)
+
+      !CALL cp_fm_struct_create(fm_struct_tmp3, nrow_global=nelectron_b_alfa, ncol_global=nelectron_a_alfa, &
+      !                            context=blacs_env, para_env=para_env)
+      !    !                           context=mos_b(1)%mo_set%mo_coeff%matrix_struct%context,&
+      !     !                          para_env=mos_b(1)%mo_set%mo_coeff%matrix_struct%context%para_env)
+
+      !CALL cp_fm_create(matrix_tmp, matrix_struct=fm_struct_tmp2)
+      !CALL cp_fm_create(D_matrix, matrix_struct=fm_struct_tmp3)
+
+      !CALL cp_gemm("T", "N", nelectron_b_alfa, row_size, nao_b_alfa, 1.0_dp, mo_coeff_b_alfa, matrix_s_fm, 0.0_dp, matrix_tmp)
+
+      !CALL cp_fm_struct_create(fm_struct_tmp4, nrow_global=nao_a_alfa, ncol_global=nelectron_a_alfa, &
+      !                            context=blacs_env, para_env=para_env)
+      !CALL cp_fm_create(moc_a_alfa, matrix_struct=fm_struct_tmp4)
+      !CALL cp_fm_to_fm(mo_coeff_a_alfa, moc_a_alfa, ncol=nelectron_a_alfa)
+      !!CALL cp_fm_struct_get(mo_coeff_a_alfa%matrix_struct, context=context_p)
+      !!context_p => blacs_env
+      !CALL cp_gemm("N", "N", nelectron_b_alfa, nelectron_a_alfa, nao_b_alfa, 1.0_dp, matrix_tmp, mo_coeff_a_alfa, 0.0_dp, D_matrix)
+      ALLOCATE(A_hat_alfa(nao_a_alfa, nelectron_a_alfa))
+      ALLOCATE(B_hat_alfa(nao_b_alfa, nelectron_b_alfa))
+      ALLOCATE(A_beta(nao_a_beta, nelectron_a_beta))
+      ALLOCATE(B_beta(nao_b_beta, nelectron_b_beta))
+      ALLOCATE(A_alfa(nao_a_alfa, nelectron_a_alfa))
+      ALLOCATE(B_alfa(nao_b_alfa, nelectron_b_alfa))
+      ALLOCATE(matrix_s_real(nao_a_alfa, nao_b_alfa))
+
+      ALLOCATE(matrix_tmp1(nelectron_b_alfa, nao_b_alfa))
+      ALLOCATE(D_alfa(nelectron_a_alfa, nelectron_b_alfa))      
+
+      CALL cp_fm_get_submatrix(mo_coeff_a_alfa, A_alfa)
+      CALL cp_fm_get_submatrix(mo_coeff_b_alfa, B_alfa)
+      CALL cp_fm_get_submatrix(matrix_s_fm, matrix_s_real)
+
+      CALL dgemm("T", "N", nelectron_b_alfa, nao_a_alfa, nao_b_alfa, 1.0_dp, &
+                  B_alfa, nao_b_alfa, matrix_s_real, nao_a_alfa, 0.0_dp, matrix_tmp1, nelectron_b_alfa)
+      CALL dgemm("N", "N", nelectron_b_alfa, nelectron_a_alfa, nao_b_alfa, 1.0_dp, &
+                  matrix_tmp1, nelectron_b_alfa, A_alfa, nao_a_alfa, 0.0_dp, D_alfa, nelectron_a_alfa)
+      
+      ALLOCATE(U_alfa(SIZE(D_alfa,1),SIZE(D_alfa,1)))
+      ALLOCATE(Vt_alfa(SIZE(D_alfa,2), SIZE(D_alfa,2)))
+      ALLOCATE(diag_alfa(MIN(SIZE(D_alfa,1),SIZE(D_alfa,2))))
+
+      lwork = MAX(1,3*MIN(SIZE(D_alfa,1), SIZE(D_alfa,2))+&
+                      MAX(SIZE(D_alfa,1), SIZE(D_alfa,2)),&
+                      5*MIN(SIZE(D_alfa,1), SIZE(D_alfa,2)))
+      ALLOCATE(work(MAX(1,lwork)))
+
+     !!!matrix, svalues, mrow, ncol, uvec, vtvec
+
+      CALL dgesvd('A', 'A', SIZE(D_alfa,1), SIZE(D_alfa,2), D_alfa,&
+             SIZE(D_alfa,1), diag_alfa, U_alfa, SIZE(D_alfa,1), Vt_alfa, &
+             SIZE(D_alfa,2), work, lwork, err_info)
+     
+      CALL dgemm('N', 'T', nao_a_alfa, nelectron_a_alfa, nelectron_a_alfa, 1.0_dp, &
+                  A_alfa, nao_a_alfa, Vt_alfa, nelectron_a_alfa, 0.0_dp, A_hat_alfa, nao_a_alfa)
+      
+      CALL dgemm('N', 'N', nao_b_alfa, nelectron_b_alfa, nelectron_b_alfa, 1.0_dp, &
+                  B_alfa, nao_b_alfa, U_alfa, nelectron_b_alfa, 0.0_dp, B_hat_alfa, nao_b_alfa)
+
+      ALLOCATE(P_alfa(nao_a_alfa, nao_b_alfa))
+      ALLOCATE(T_alfa(SIZE(diag_alfa), SIZE(diag_alfa)))
+      ALLOCATE(tmp1(nao_a_alfa, nelectron_a_alfa))
+
+      CALL product_except_self(diag_alfa, T_alfa)
+     
+      CALL write_real_1dmatrix_to(diag_alfa, 124, "diag_alfa")
+      CALL write_real_2dmatrix_to(U_alfa, 124, "U_alfa") 
+      CALL write_real_2dmatrix_to(Vt_alfa, 124, "Vt_alfa")
+      CALL write_real_2dmatrix_to(A_hat_alfa, 124, "A_hat_alfa")
+      CALL write_real_2dmatrix_to(B_hat_alfa, 124, "B_hat_alfa")
+      CALL write_real_2dmatrix_to(T_alfa, 124, "T_alfa")
+      
+      CALL dgemm('N', 'N', nao_a_alfa, SIZE(T_alfa, 2), nelectron_a_alfa,  1.0_dp, &
+                  A_hat_alfa, nao_a_alfa, T_alfa, SIZE(T_alfa, 2), 0.0_dp, tmp1, nao_a_alfa)
+      CALL dgemm('N', 'T', nao_a_alfa, nao_b_alfa, nelectron_a_alfa,  1.0_dp,&
+                  tmp1, nao_a_alfa, B_hat_alfa, nao_b_alfa, 0.0_dp, P_alfa, nao_a_alfa)
+
+!!!!!!!!!!!!! BETA  !!!!!!!!!!!!!!
+      ALLOCATE(A_hat_beta(nao_a_beta, nelectron_a_beta))
+      ALLOCATE(B_hat_beta(nao_b_beta, nelectron_b_beta))
+      ALLOCATE(matrix_tmp2(nelectron_b_beta, nao_b_beta))
+      ALLOCATE(D_beta(nelectron_a_beta, nelectron_b_beta))
+
+      CALL cp_fm_get_submatrix(mo_coeff_a_beta, A_beta)
+      CALL cp_fm_get_submatrix(mo_coeff_b_beta, B_beta)
+
+      CALL dgemm("T", "N", nelectron_b_beta, nao_a_beta, nao_b_beta, 1.0_dp, &
+                  B_beta, nao_b_beta, matrix_s_real, nao_a_beta, 0.0_dp, matrix_tmp2, nelectron_b_beta)
+      CALL dgemm("N", "N", nelectron_b_beta, nelectron_a_beta, nao_b_beta, 1.0_dp, &
+                  matrix_tmp2, nelectron_b_beta, A_beta, nao_a_beta, 0.0_dp, D_beta, nelectron_a_beta)
+
+      ALLOCATE(U_beta(SIZE(D_beta,1),SIZE(D_beta,1)))
+      ALLOCATE(Vt_beta(SIZE(D_beta,2), SIZE(D_beta,2)))
+      ALLOCATE(diag_beta(MIN(SIZE(D_beta,1),SIZE(D_beta,2))))
+
+      lwork = MAX(1,3*MIN(SIZE(D_beta,1), SIZE(D_beta,2))+&
+                      MAX(SIZE(D_beta,1), SIZE(D_beta,2)),&
+                      5*MIN(SIZE(D_beta,1), SIZE(D_beta,2)))
+      DEALLOCATE(work)
+      ALLOCATE(work(MAX(1,lwork)))
+
+     !!!matrix, svalues, mrow, ncol, uvec, vtvec
+
+      CALL dgesvd('A', 'A', SIZE(D_beta,1), SIZE(D_beta,2), D_beta,&
+             SIZE(D_beta,1), diag_beta, U_beta, SIZE(D_beta,1), Vt_beta, &
+             SIZE(D_beta,2), work, lwork, err_info)
+
+      CALL dgemm('N', 'T', nao_a_beta, nelectron_a_beta, nelectron_a_beta, 1.0_dp, &
+                  A_beta, nao_a_beta, Vt_beta, nelectron_a_beta, 0.0_dp, A_hat_beta, nao_a_beta)
+
+      CALL dgemm('N', 'N', nao_b_beta, nelectron_b_beta, nelectron_b_beta, 1.0_dp, &
+                  B_beta, nao_b_beta, U_beta, nelectron_b_beta, 0.0_dp, B_hat_beta, nao_b_beta)
+
+      ALLOCATE(P_beta(nao_a_beta, nao_b_beta))
+      ALLOCATE(T_beta(SIZE(diag_beta), SIZE(diag_beta)))
+      ALLOCATE(tmp2(nao_a_beta, nelectron_a_beta))
+
+      CALL product_except_self(diag_beta, T_beta)
+
+      CALL write_real_1dmatrix_to(diag_beta, 124, "diag_beta")
+      CALL write_real_2dmatrix_to(U_beta, 124, "U_beta")
+      CALL write_real_2dmatrix_to(Vt_beta, 124, "Vt_beta")
+      CALL write_real_2dmatrix_to(A_hat_beta, 124, "A_hat_beta")
+      CALL write_real_2dmatrix_to(B_hat_beta, 124, "B_hat_beta")
+      CALL write_real_2dmatrix_to(T_beta, 124, "T_beta")
+
+      CALL dgemm('N', 'N', nao_a_beta, SIZE(T_beta, 2), nelectron_a_beta,  1.0_dp, &
+                  A_hat_beta, nao_a_beta, T_beta, SIZE(T_beta, 2), 0.0_dp, tmp2, nao_a_beta)
+      CALL dgemm('N', 'T', nao_a_beta, nao_b_beta, nelectron_a_beta,  1.0_dp,&
+                  tmp2, nao_a_beta, B_hat_beta, nao_b_beta, 0.0_dp, P_beta, nao_a_beta)
+
+      d_prod_alfa = PRODUCT(diag_alfa)
+      d_prod_beta = PRODUCT(diag_beta)
+
+      P_alfa = d_prod_beta * P_alfa
+      P_beta = d_prod_alfa * P_beta
+
+      CALL write_real_2dmatrix_to(P_alfa, 124, "P_alfa")
+      CALL write_real_2dmatrix_to(P_beta, 124, "P_beta")
+      
+      ! CALL qs_rho_create(rho_modified)
+      CALL dbcsr_get_info(mos_b(1)%mo_set%mo_coeff_b, nfullrows_total=nfullrows_total, &
+                         nfullcols_total=nfullcols_total, nblkrows_total=nblkrows_total, &
+                         nblkcols_total=nblkcols_total)
+      CALL cp_fm_struct_create(fm_struct_tmp2, nrow_global=nfullrows_total, ncol_global=nfullcols_total, &
+                                nrow_block=nblkrows_total, ncol_block=nblkcols_total,&
+                                context=blacs_env, para_env=para_env)
+
+
+      CALL cp_fm_create(P_alfa_fm, matrix_struct=fm_struct_tmp2) 
+      CALL cp_fm_create(P_beta_fm, matrix_struct=fm_struct_tmp2)
+      
+      CALL cp_fm_set_submatrix(P_alfa_fm, P_alfa)
+      CALL cp_fm_set_submatrix(P_beta_fm, P_beta)
+
+      
+      CALL cp_fm_write_formatted(P_alfa_fm, iw,"P_alfa_fullmatrix")
+      CALL cp_fm_write_formatted(P_beta_fm, iw,"P_beta_fullmatrix") 
+      
+
+      
+      !STOP 'in vab'
+      NULLIFY(density_modified, row_blk_size, col_blk_size) 
+      !CALL dbcsr_get_info(matrix_ks(1)%matrix,distribution=distribution,&
+      !                   row_blk_size=row_blk_size,col_blk_size=col_blk_size, &
+      !                   matrix_type=matrix_type,nfullrows_total=i,nfullcols_total=j)
+      !CALL dbcsr_allocate_matrix_set(density_modified, 2)
+      !WRITE(124,*) " row_blk_size, col_blk_size", row_blk_size(:), "and",col_blk_size(:), &
+      !        "matrix_type", matrix_type, "nblks total rows, cols,", i, j
+      ALLOCATE(density_modified(2))
+      !CALL mp_cart_create(MPI_COMM_WORLD, 2, npdims, myploc, group)
+      !CALL mp_environ(numnodes, mynode, group)
+      !WRITE(124,*) "numnodes, mynode, group",numnodes, mynode, group
+      !nblkrows_total = 1
+      !nblkcols_total = 1
+      !ALLOCATE (row_blk_size(nblkrows_total), col_blk_size(nblkcols_total))
+      !row_blk_size(:) = 2
+      !col_blk_size(:) = 2
+      !! set the row and column distributions (here the distribution is set
+      !! randomly)
+      !CALL random_dist(row_dist, nblkrows_total, npdims(1))
+      !CALL random_dist(col_dist, nblkcols_total, npdims(2))
+
+
+      !CALL dbcsr_distribution_new(distribution, group=group, row_dist=row_dist, col_dist=col_dist, reuse_arrays=.TRUE.)
+      DO i=1,2
+        CALL dbcsr_init_p(density_modified(i)%matrix)
+        CALL cp_dbcsr_m_by_n_from_template(density_modified(i)%matrix,&
+                                           template=matrix_s(1)%matrix,&
+                                           m=SIZE(P_alfa,1), n=SIZE(P_alfa,2), &
+                                           sym=dbcsr_type_no_symmetry)
+        !CALL dbcsr_create(density_modified(i)%matrix, &
+        !                    dist=distribution,&
+        !                    matrix_type=dbcsr_type_no_symmetry, &
+        !                    name="density modified", &
+        !                    row_blk_size=row_blk_size, &
+        !                    col_blk_size=col_blk_size, nze=0)
+      END DO
+      CALL copy_fm_to_dbcsr(P_alfa_fm, density_modified(1)%matrix)!, keep_sparsity=.TRUE.) 
+      !!                           ! template_mat=mos_b(1)%mo_set%mo_coeff_b)
+      CALL copy_fm_to_dbcsr(P_beta_fm, density_modified(2)%matrix)!, keep_sparsity=.TRUE.)
+      !!                           ! template_mat=mos_b(2)%mo_set%mo_coeff_b)
+      !STOP 'stopped in vab'
+      !CALL copy_fm_to_dbcsr(P_beta_fm, density_modified(2)%matrix)      
+      !NULLIFY(rho_modified) 
+      !CALL qs_rho_create(rho_modified)
+      !CALL qs_rho_rebuild(rho_modified, qs_env_b)
+      CALL get_qs_env(qs_env_b, rho=rho)
+      CALL qs_rho_set(rho, rho_ao=density_modified)
+      CALL section_vals_val_get(qs_env_b%input, "DFT%PRINT%AO_MATRICES%OMIT_HEADERS",l_val=omit_headers)
+      CALL section_vals_val_get(qs_env_b%input,"DFT%PRINT%AO_MATRICES%NDIGITS",i_val=after)
+      after=MIN(MAX(after,1),16)
+      before=4
+      CALL cp_dbcsr_write_sparse_matrix(density_modified(1)%matrix, before, after, qs_env_b, para_env, &
+                                     output_unit=iw, omit_headers=omit_headers)
+      CALL cp_dbcsr_write_sparse_matrix(density_modified(2)%matrix, before, after,qs_env_b, para_env, &
+                                     output_unit=iw, omit_headers=omit_headers)
+      WRITE(124,*) "cpassert rhostruct assocaited", ASSOCIATED(rho)
+      STOP 'in vab'
+      CALL qs_rho_update_rho(rho, qs_env=qs_env_b)
+      CALL qs_ks_did_change(ks_env, rho_changed=.TRUE., potential_changed=.TRUE.)
+      CALL qs_ks_update_qs_env(qs_env_b, just_energy=.TRUE., &
+                                     calculate_forces=.FALSE., calc_vab=.TRUE.)
+
+
+
+      CALL cp_fm_release(matrix_s_fm)
+      CALL cp_fm_struct_release(fm_struct_tmp)
+      CALL cp_fm_struct_release(fm_struct_tmp2)
+ 
+      !CALL etcot(mos_a, mos_b)      
+      !CALL dbcsr_release(mos_tmp)
+      CALL dbcsr_release(density_modified(1)%matrix)
+      CALL dbcsr_release(density_modified(2)%matrix)
+      DEALLOCATE(density_modified)
+   END SUBROUTINE calculate_vab
+
+   !SUBROUTINE etcot()
+   !END SUBROUTINE etcot
+
+   !SUBROUTINE h2xx()
+   !END SUBROUTINE h2xx
+ 
+   !SUBROUTINE h2ab()
+   !END SUBROUTINE h2ab
+
+   !SUBROUTINE h1ab()
+   !END SUBROUTINE h1ab
+   
+   SUBROUTINE product_except_self(diag_mat, T_mat)
+      REAL(kind=dp), DIMENSION(:), POINTER                               :: diag_mat
+      REAL(kind=dp), DIMENSION(:,:), POINTER, INTENT(OUT)       :: T_mat  
+      CHARACTER(len=*), PARAMETER :: routineN = 'product_except_self', &
+         routineP = moduleN//':'//routineN
+      
+      INTEGER                                                   :: i, j, N
+      REAL(kind=dp)                                             :: r_prod
+
+      N = SIZE(diag_mat)
+      IF (N == 0) RETURN
+      DO i = 1,N
+         DO j = 1,N
+            IF (i == j) THEN 
+                T_mat(i,j) = 1.0_dp
+            ELSE
+                T_mat(i,j) = 0.0_dp
+            END IF
+         END DO
+      END DO
+      DO i = 2, N
+        T_mat(i,i) = T_mat(i-1,i-1) * diag_mat(i-1)
+      END DO
+      r_prod = 1.0_dp      
+      DO i = N,1,-1
+        T_mat(i,i) = T_mat(i,i) * r_prod
+        r_prod = r_prod * diag_mat(i)
+      END DO
+   END SUBROUTINE product_except_self
+
+   SUBROUTINE write_real_2dmatrix_to(matrix, write_nr, matrix_name)
+      REAL(kind=dp), DIMENSION(:,:), POINTER                             :: matrix 
+      INTEGER                                                   :: write_nr
+      CHARACTER(len=*)                                          :: matrix_name
+      CHARACTER(len=*), PARAMETER :: routineN = 'write_real_2dmatrix_to', &
+         routineP = moduleN//':'//routineN
+      INTEGER                                                   :: i, M
+      WRITE(write_nr,*) "----------"
+      WRITE(write_nr,*) matrix_name
+      WRITE(write_nr,*) "----------"
+      M = SIZE(matrix, 1)
+      DO i = 1, M
+           WRITE(write_nr,*) matrix(i, :)
+      END DO
+      WRITE(write_nr,*) "----------"
+   END SUBROUTINE write_real_2dmatrix_to
+
+   SUBROUTINE write_real_1dmatrix_to(matrix, write_nr, matrix_name)
+      REAL(kind=dp), DIMENSION(:), POINTER                             :: matrix
+      INTEGER                                                   :: write_nr
+      CHARACTER(len=*)                                          :: matrix_name
+      CHARACTER(len=*), PARAMETER :: routineN = 'write_real_2dmatrix_to', &
+         routineP = moduleN//':'//routineN
+      INTEGER                                                   :: i, M
+      WRITE(write_nr,*) "----------"
+      WRITE(write_nr,*) matrix_name
+      WRITE(write_nr,*) "----------"
+      WRITE(write_nr,*) matrix(:)
+      WRITE(write_nr,*) "----------"
+   END SUBROUTINE write_real_1dmatrix_to
+
+   !Following routine is from  from dbcsr_example3.F
+   SUBROUTINE random_dist(dist_array, dist_size, nbins)
+      INTEGER, DIMENSION(:), INTENT(out), POINTER        :: dist_array
+      INTEGER, INTENT(in)                                :: dist_size, nbins
+
+      INTEGER                                            :: i
+
+      ALLOCATE (dist_array(dist_size))
+      DO i = 1, dist_size
+         dist_array(i) = MODULO(nbins-i, nbins)
+      END DO
+
+   END SUBROUTINE random_dist
+  
+END MODULE vab

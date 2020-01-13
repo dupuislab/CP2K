@@ -81,9 +81,13 @@ CONTAINS
       CPASSERT(.NOT. ASSOCIATED(section))
       CALL section_create(section, name="PROPERTIES", &
                           description="This section is used to set up the PROPERTIES calculation.", &
-                          n_keywords=0, n_subsections=7, repeats=.FALSE.)
+                          n_keywords=0, n_subsections=8, repeats=.FALSE.)
 
       NULLIFY (subsection, keyword)
+
+      CALL create_moa_section(subsection)
+      CALL section_add_subsection(section, subsection)
+      CALL section_release(subsection)
 
       CALL create_linres_section(subsection)
       CALL section_add_subsection(section, subsection)
@@ -122,6 +126,107 @@ CONTAINS
       CALL section_release(subsection)
 
    END SUBROUTINE create_properties_section
+
+! **************************************************************************************************
+!> \brief creates the section for Maximal Orbital Analysis
+!> \param section ...
+!> \author Pavan Behara
+! **************************************************************************************************
+   SUBROUTINE create_moa_section(section)
+      TYPE(section_type), POINTER                        :: section
+
+      CHARACTER(len=*), PARAMETER :: routineN = 'create_moa_section', &
+         routineP = moduleN//':'//routineN
+
+      TYPE(keyword_type), POINTER                        :: keyword
+
+      NULLIFY (keyword)
+      CPASSERT(.NOT. ASSOCIATED(section))
+      CALL section_create(section, "MOA", &
+                          description="To do Maximal Orbital Analysis", &
+                          n_keywords=9, n_subsections=0, repeats=.FALSE.)
+
+      NULLIFY (keyword)
+      CALL keyword_create(keyword, name="_SECTION_PARAMETERS_", &
+                                description="controls the activation of the MOA analysis", &
+                                usage="&MOA T", default_l_val=.FALSE., lone_keyword_l_val=.TRUE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+
+      CALL keyword_create(keyword, name="NFRG", &
+                          description="Number of fragments", &
+                          usage="NFRG 2", default_i_val=0)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, name="LFRG", &
+                          description="Length of fragments as a list", &
+                          usage="LFRG 1 2", &
+                          n_var=-1, type_of_var=integer_t, default_i_vals=(/-100/), repeats=.FALSE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, name="IFRG", &
+                          description="Indices of atoms in the fragment as a list or range"// &
+                          "For multiple fragments depending on the length of each"// &
+                          "fragement the list of atoms following the first set "// &
+                          "will go to second set and so on", &
+                          usage="IFRG 1 2 3", &
+                          n_var=-1, type_of_var=integer_t, default_i_vals=(/-100/), repeats=.FALSE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, name="NOMOA", &
+                          description="Exclude molecular orbitals"// &
+                          "Any non-zero number will exclude that "// &
+                          "particular orbital", &
+                          usage="NOMOA 1 2 3", &
+                          n_var=-1, type_of_var=integer_t, default_i_vals=(/0/), repeats=.FALSE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, name="NOMOAA", &
+                          description="Exclude molecular orbitals"// &
+                          "Any non-zero number will exclude that "// &
+                          "particular orbital", &
+                          usage="NOMOAA 1 2 3", &
+                          n_var=-1, type_of_var=integer_t, default_i_vals=(/0/), repeats=.FALSE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, name="NOMOAB", &
+                          description="Exclude molecular orbitals"// &
+                          "Any non-zero number will exclude that "// &
+                          "particular orbital", &
+                          usage="NOMOAB 1 2 3", &
+                          n_var=-1, type_of_var=integer_t, default_i_vals=(/0/), repeats=.FALSE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, name="IFUNO", &
+                          description="If UHF Natural Orbitals", &
+                          usage="IFUNO .TRUE.", default_l_val=.FALSE., &
+                          lone_keyword_l_val=.TRUE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, name="IFPUN", &
+                          description="Print out the MOA orbitals", &
+                          usage="IFPUN .TRUE.", default_l_val=.FALSE., &
+                          lone_keyword_l_val=.TRUE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, name="IFCUB", &
+                          description="Print out gaussian like cube file with MOA orbitals", &
+                          usage="IFCUB .TRUE.", default_l_val=.FALSE., &
+                          lone_keyword_l_val=.TRUE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+
+   END SUBROUTINE create_moa_section
 
 
 
