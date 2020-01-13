@@ -1,0 +1,1399 @@
+ DBCSR| Multiplication driver                                               BLAS
+ DBCSR| Multrec recursion limit                                              512
+ DBCSR| Multiplication stack size                                           1000
+ DBCSR| Maximum elements for images                                    UNLIMITED
+ DBCSR| Multiplicative factor virtual images                                   1
+ DBCSR| Multiplication size stacks                                             3
+ DBCSR| Number of 3D layers                                               SINGLE
+ DBCSR| Use MPI memory allocation                                              T
+ DBCSR| Use RMA algorithm                                                      F
+ DBCSR| Use Communication thread                                               T
+ DBCSR| Communication thread load                                             87
+
+
+  **** **** ******  **  PROGRAM STARTED AT               2020-01-08 18:20:54.954
+ ***** ** ***  *** **   PROGRAM STARTED ON        cpn-p28-37.cbls.ccr.buffalo.ed
+ **    ****   ******    PROGRAM STARTED BY                              pavankum
+ ***** **    ** ** **   PROGRAM PROCESS ID                                 12457
+  **** **  *******  **  PROGRAM STARTED IN /projects/academic/mdupuis2/pavan/MOA
+                                           /H2-dimer/cp2k
+
+ CP2K| version string:                                          CP2K version 6.1
+ CP2K| source code revision number:                                    svn:18464
+ CP2K| cp2kflags: libint fftw3 libxc parallel mpi3 scalapack libderiv_max_am1=5 
+ CP2K|            libint_max_am=6
+ CP2K| is freely available from                            https://www.cp2k.org/
+ CP2K| Program compiled at                          Fri Nov 30 14:17:09 EST 2018
+ CP2K| Program compiled on                       srv-p22-12.cbls.ccr.buffalo.edu
+ CP2K| Program compiled for                                                local
+ CP2K| Data directory path    /projects/academic/mdupuis2/pavan/cp2k/cp2k-6.1/da
+ CP2K| Input file name                                                 input.inp
+
+ GLOBAL| Force Environment number                                              1
+ GLOBAL| Basis set file name                                       ./water.basis
+ GLOBAL| Potential file name                                   ./water.potential
+ GLOBAL| MM Potential file name                                     MM_POTENTIAL
+ GLOBAL| Coordinate file name                                     ./geometry.xyz
+ GLOBAL| Method name                                                        CP2K
+ GLOBAL| Project name                                                         p_
+ GLOBAL| Preferred FFT library                                             FFTW3
+ GLOBAL| Preferred diagonalization lib.                                       SL
+ GLOBAL| Run type                                                         ENERGY
+ GLOBAL| All-to-all communication in single precision                          F
+ GLOBAL| FFTs using library dependent lengths                                  T
+ GLOBAL| Global print level                                               MEDIUM
+ GLOBAL| Total number of message passing processes                            16
+ GLOBAL| Number of threads for this process                                    1
+ GLOBAL| This output is from process                                           0
+ GLOBAL| CPU model name :  Intel(R) Xeon(R) CPU E5-2650 v3 @ 2.30GHz
+
+ MEMORY| system memory details [Kb]
+ MEMORY|                        rank 0           min           max       average
+ MEMORY| MemTotal            131766872     131766872     131766872     131766872
+ MEMORY| MemFree             126144716     126144716     126144716     126144716
+ MEMORY| Buffers                509908        509908        509908        509908
+ MEMORY| Cached                1605868       1605868       1605868       1605868
+ MEMORY| Slab                   364116        364116        364116        364116
+ MEMORY| SReclaimable           265688        265688        265688        265688
+ MEMORY| MemLikelyFree       128526180     128526180     128526180     128526180
+
+
+ *** Fundamental physical constants (SI units) ***
+
+ *** Literature: B. J. Mohr and B. N. Taylor,
+ ***             CODATA recommended values of the fundamental physical
+ ***             constants: 2006, Web Version 5.1
+ ***             http://physics.nist.gov/constants
+
+ Speed of light in vacuum [m/s]                             2.99792458000000E+08
+ Magnetic constant or permeability of vacuum [N/A**2]       1.25663706143592E-06
+ Electric constant or permittivity of vacuum [F/m]          8.85418781762039E-12
+ Planck constant (h) [J*s]                                  6.62606896000000E-34
+ Planck constant (h-bar) [J*s]                              1.05457162825177E-34
+ Elementary charge [C]                                      1.60217648700000E-19
+ Electron mass [kg]                                         9.10938215000000E-31
+ Electron g factor [ ]                                     -2.00231930436220E+00
+ Proton mass [kg]                                           1.67262163700000E-27
+ Fine-structure constant                                    7.29735253760000E-03
+ Rydberg constant [1/m]                                     1.09737315685270E+07
+ Avogadro constant [1/mol]                                  6.02214179000000E+23
+ Boltzmann constant [J/K]                                   1.38065040000000E-23
+ Atomic mass unit [kg]                                      1.66053878200000E-27
+ Bohr radius [m]                                            5.29177208590000E-11
+
+ *** Conversion factors ***
+
+ [u] -> [a.u.]                                              1.82288848426455E+03
+ [Angstrom] -> [Bohr] = [a.u.]                              1.88972613288564E+00
+ [a.u.] = [Bohr] -> [Angstrom]                              5.29177208590000E-01
+ [a.u.] -> [s]                                              2.41888432650478E-17
+ [a.u.] -> [fs]                                             2.41888432650478E-02
+ [a.u.] -> [J]                                              4.35974393937059E-18
+ [a.u.] -> [N]                                              8.23872205491840E-08
+ [a.u.] -> [K]                                              3.15774647902944E+05
+ [a.u.] -> [kJ/mol]                                         2.62549961709828E+03
+ [a.u.] -> [kcal/mol]                                       6.27509468713739E+02
+ [a.u.] -> [Pa]                                             2.94210107994716E+13
+ [a.u.] -> [bar]                                            2.94210107994716E+08
+ [a.u.] -> [atm]                                            2.90362800883016E+08
+ [a.u.] -> [eV]                                             2.72113838565563E+01
+ [a.u.] -> [Hz]                                             6.57968392072181E+15
+ [a.u.] -> [1/cm] (wave numbers)                            2.19474631370540E+05
+ [a.u./Bohr**2] -> [1/cm]                                   5.14048714338585E+03
+ 
+
+ CELL_TOP| Volume [angstrom^3]:                                         8000.000
+ CELL_TOP| Vector a [angstrom    20.000     0.000     0.000    |a| =      20.000
+ CELL_TOP| Vector b [angstrom     0.000    20.000     0.000    |b| =      20.000
+ CELL_TOP| Vector c [angstrom     0.000     0.000    20.000    |c| =      20.000
+ CELL_TOP| Angle (b,c), alpha [degree]:                                   90.000
+ CELL_TOP| Angle (a,c), beta  [degree]:                                   90.000
+ CELL_TOP| Angle (a,b), gamma [degree]:                                   90.000
+ CELL_TOP| Numerically orthorhombic:                                         YES
+
+ CELL| Volume [angstrom^3]:                                             8000.000
+ CELL| Vector a [angstrom]:      20.000     0.000     0.000    |a| =      20.000
+ CELL| Vector b [angstrom]:       0.000    20.000     0.000    |b| =      20.000
+ CELL| Vector c [angstrom]:       0.000     0.000    20.000    |c| =      20.000
+ CELL| Angle (b,c), alpha [degree]:                                       90.000
+ CELL| Angle (a,c), beta  [degree]:                                       90.000
+ CELL| Angle (a,b), gamma [degree]:                                       90.000
+ CELL| Numerically orthorhombic:                                             YES
+
+ CELL_REF| Volume [angstrom^3]:                                         8000.000
+ CELL_REF| Vector a [angstrom    20.000     0.000     0.000    |a| =      20.000
+ CELL_REF| Vector b [angstrom     0.000    20.000     0.000    |b| =      20.000
+ CELL_REF| Vector c [angstrom     0.000     0.000    20.000    |c| =      20.000
+ CELL_REF| Angle (b,c), alpha [degree]:                                   90.000
+ CELL_REF| Angle (a,c), beta  [degree]:                                   90.000
+ CELL_REF| Angle (a,b), gamma [degree]:                                   90.000
+ CELL_REF| Numerically orthorhombic:                                         YES
+
+ *******************************************************************************
+ *******************************************************************************
+ **                                                                           **
+ **     #####                         ##              ##                      **
+ **    ##   ##            ##          ##              ##                      **
+ **   ##     ##                       ##            ######                    **
+ **   ##     ##  ##   ##  ##   #####  ##  ##   ####   ##    #####    #####    **
+ **   ##     ##  ##   ##  ##  ##      ## ##   ##      ##   ##   ##  ##   ##   **
+ **   ##  ## ##  ##   ##  ##  ##      ####     ###    ##   ######   ######    **
+ **    ##  ###   ##   ##  ##  ##      ## ##      ##   ##   ##       ##        **
+ **     #######   #####   ##   #####  ##  ##  ####    ##    #####   ##        **
+ **           ##                                                    ##        **
+ **                                                                           **
+ **                                                ... make the atoms dance   **
+ **                                                                           **
+ **            Copyright (C) by CP2K developers group (2000 - 2018)           **
+ **                                                                           **
+ *******************************************************************************
+
+ DFT| Spin unrestricted (spin-polarized) Kohn-Sham calculation               UKS
+ DFT| Multiplicity                                                             1
+ DFT| Number of spin states                                                    2
+ DFT| Charge                                                                   0
+ DFT| Self-interaction correction (SIC)                                       NO
+ DFT| Cutoffs: density                                              1.000000E-10
+ DFT|          gradient                                             1.000000E-10
+ DFT|          tau                                                  1.000000E-10
+ DFT|          cutoff_smoothing_range                               0.000000E+00
+ DFT| XC density smoothing                                                  NONE
+ DFT| XC derivatives                                                          PW
+ FUNCTIONAL| NO EXCHANGE-CORRELATION FUNCTIONAL USED.
+
+ QS| Method:                                                                GAPW
+ QS| Density plane wave grid type                        NON-SPHERICAL FULLSPACE
+ QS| Number of grid levels:                                                   10
+ QS| Density cutoff [a.u.]:                                                325.0
+ QS| Multi grid cutoff [a.u.]: 1) grid level                               325.0
+ QS|                           2) grid level                               108.3
+ QS|                           3) grid level                                36.1
+ QS|                           4) grid level                                12.0
+ QS|                           5) grid level                                 4.0
+ QS|                           6) grid level                                 1.3
+ QS|                           7) grid level                                 0.4
+ QS|                           8) grid level                                 0.1
+ QS|                           9) grid level                                 0.0
+ QS|                          10) grid level                                 0.0
+ QS| Grid level progression factor:                                          3.0
+ QS| Relative density cutoff [a.u.]:                                        40.0
+ QS| Consistent realspace mapping and integration 
+ QS| Interaction thresholds: eps_pgf_orb:                                1.0E-06
+ QS|                         eps_filter_matrix:                          0.0E+00
+ QS|                         eps_core_charge:                            1.0E-14
+ QS|                         eps_rho_gspace:                             1.0E-12
+ QS|                         eps_rho_rspace:                             1.0E-12
+ QS|                         eps_gvg_rspace:                             1.0E-06
+ QS|                         eps_ppl:                                    1.0E-02
+ QS|                         eps_ppnl:                                   1.0E-08
+ QS| GAPW|                   eps_fit:                                    1.0E-04
+ QS| GAPW|                   eps_iso:                                    1.0E-12
+ QS| GAPW|                   eps_svd:                                    1.0E-08
+ QS| GAPW|                   eps_cpc:                                    1.0E-12
+ QS| GAPW|   atom-r-grid: quadrature:                 GC_LOG                        
+ QS| GAPW|      atom-s-grid:  max l :                                          2
+ QS| GAPW|      max_l_rho0 :                                                   2
+
+
+ ATOMIC KIND INFORMATION
+
+  1. Atomic kind: H                                     Number of atoms:       4
+
+     Orbital Basis Set                                                   6-31G**
+
+       Number of orbital shell sets:                                           3
+       Number of orbital shells:                                               3
+       Number of primitive Cartesian functions:                                5
+       Number of Cartesian basis functions:                                    5
+       Number of spherical basis functions:                                    5
+       Norm type:                                                              2
+
+       Normalised Cartesian orbitals:
+
+                        Set   Shell   Orbital            Exponent    Coefficient
+
+                          1       1    1s               18.731137       0.214935
+                                                         2.825394       0.364571
+                                                         0.640122       0.415051
+
+                          2       1    1s                0.161278       0.181381
+
+                          3       1    1px               1.100000       1.605761
+                          3       1    1py               1.100000       1.605761
+                          3       1    1pz               1.100000       1.605761
+
+     The atoms of this atomic kind are PAW atoms (GAPW):
+       Hard Gaussian function radius:                                      1.200
+       Rho0 radius:                                                        1.200
+       Maximum GTO radius used for PAW projector construction:            24.566
+
+     GAPW Soft Basis Set                                            6-31G**_soft
+
+       Number of orbital shell sets:                                           3
+       Number of orbital shells:                                               3
+       Number of primitive Cartesian functions:                                4
+       Number of Cartesian basis functions:                                    5
+       Number of spherical basis functions:                                    5
+       Norm type:                                                              2
+
+       Normalised Cartesian orbitals:
+
+                        Set   Shell   Orbital            Exponent    Coefficient
+
+                          1       1    1s                2.825394       0.364571
+                                                         0.640122       0.415051
+
+                          2       1    1s                0.161278       0.181381
+
+                          3       1    1px               1.100000       1.605761
+                          3       1    1py               1.100000       1.605761
+                          3       1    1pz               1.100000       1.605761
+
+     AE Potential information for                                            ALL
+
+       Description:                                       All-electron potential
+                                          Krack, Parrinello, PCCP 2, 2105 (2000)
+
+       Gaussian exponent of the core charge distribution:              12.500000
+       Electronic configuration (s p d ...):                           1   0   0
+
+
+ MOLECULE KIND INFORMATION
+
+
+ All atoms are their own molecule, skipping detailed information
+
+
+ TOTAL NUMBERS AND MAXIMUM NUMBERS
+
+  Total number of            - Atomic kinds:                                   1
+                             - Atoms:                                          4
+                             - Shell sets:                                    12
+                             - Shells:                                        12
+                             - Primitive Cartesian functions:                 20
+                             - Cartesian basis functions:                     20
+                             - Spherical basis functions:                     20
+
+  Maximum angular momentum of the orbital basis functions:                     1
+
+
+ MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom
+
+  Atom  Kind  Element       X           Y           Z          Z(eff)       Mass
+
+       1     1 H    1    8.875000   10.000000   10.370424      1.00       1.0079
+       2     1 H    1    8.875000   10.000000    9.629576      1.00       1.0079
+       3     1 H    1   11.125000   10.000000   10.770424      1.00       1.0079
+       4     1 H    1   11.125000   10.000000    9.229576      1.00       1.0079
+
+
+
+
+ SCF PARAMETERS         Density guess:                                    ATOMIC
+                        --------------------------------------------------------
+                        max_scf:                                              50
+                        max_scf_history:                                       0
+                        max_diis:                                              4
+                        --------------------------------------------------------
+                        eps_scf:                                        1.00E-09
+                        eps_scf_history:                                0.00E+00
+                        eps_diis:                                       1.00E-01
+                        eps_eigval:                                     1.00E-05
+                        --------------------------------------------------------
+                        level_shift [a.u.]:                                 0.00
+                        --------------------------------------------------------
+                        Mixing method:                           DIRECT_P_MIXING
+                        --------------------------------------------------------
+                        Outer loop SCF in use 
+                        No variables optimised in outer loop
+                        eps_scf                                         1.00E-09
+                        max_scf                                                1
+                        No outer loop optimization
+                        step_size                                       5.00E-01
+
+ PW_GRID| Information for grid number                                          1
+ PW_GRID| Grid distributed over                                    16 processors
+ PW_GRID| Real space group dimensions                                    16    1
+ PW_GRID| the grid is blocked:                                                NO
+ PW_GRID| Cutoff [a.u.]                                                    325.0
+ PW_GRID| spherical cutoff:                                                   NO
+ PW_GRID|   Bounds   1           -154     153                Points:         308
+ PW_GRID|   Bounds   2           -154     153                Points:         308
+ PW_GRID|   Bounds   3           -154     153                Points:         308
+ PW_GRID| Volume element (a.u.^3)  0.1848E-02     Volume (a.u.^3)     53986.6767
+ PW_GRID| Grid span                                                    FULLSPACE
+ PW_GRID|   Distribution                         Average         Max         Min
+ PW_GRID|   G-Vectors                          1826132.0     1826132     1826132
+ PW_GRID|   G-Rays                                5929.0        5929        5929
+ PW_GRID|   Real Space Points                  1826132.0     1897280     1802416
+
+ PW_GRID| Information for grid number                                          2
+ PW_GRID| Grid distributed over                                    16 processors
+ PW_GRID| Real space group dimensions                                    16    1
+ PW_GRID| the grid is blocked:                                                NO
+ PW_GRID| Cutoff [a.u.]                                                    108.3
+ PW_GRID| spherical cutoff:                                                   NO
+ PW_GRID|   Bounds   1            -90      89                Points:         180
+ PW_GRID|   Bounds   2            -90      89                Points:         180
+ PW_GRID|   Bounds   3            -90      89                Points:         180
+ PW_GRID| Volume element (a.u.^3)  0.9257E-02     Volume (a.u.^3)     53986.6767
+ PW_GRID| Grid span                                                    FULLSPACE
+ PW_GRID|   Distribution                         Average         Max         Min
+ PW_GRID|   G-Vectors                           364500.0      364680      364320
+ PW_GRID|   G-Rays                                2025.0        2026        2024
+ PW_GRID|   Real Space Points                   364500.0      388800      356400
+
+ PW_GRID| Information for grid number                                          3
+ PW_GRID| Grid distributed over                                    16 processors
+ PW_GRID| Real space group dimensions                                    16    1
+ PW_GRID| the grid is blocked:                                                NO
+ PW_GRID| Cutoff [a.u.]                                                     36.1
+ PW_GRID| spherical cutoff:                                                   NO
+ PW_GRID|   Bounds   1            -52      52                Points:         105
+ PW_GRID|   Bounds   2            -52      52                Points:         105
+ PW_GRID|   Bounds   3            -52      52                Points:         105
+ PW_GRID| Volume element (a.u.^3)  0.4664E-01     Volume (a.u.^3)     53986.6767
+ PW_GRID| Grid span                                                    FULLSPACE
+ PW_GRID|   Distribution                         Average         Max         Min
+ PW_GRID|   G-Vectors                            72351.6       72555       72240
+ PW_GRID|   G-Rays                                 689.1         691         688
+ PW_GRID|   Real Space Points                    72351.6       77175       66150
+
+ PW_GRID| Information for grid number                                          4
+ PW_GRID| Grid distributed over                                    16 processors
+ PW_GRID| Real space group dimensions                                    16    1
+ PW_GRID| the grid is blocked:                                                NO
+ PW_GRID| Cutoff [a.u.]                                                     12.0
+ PW_GRID| spherical cutoff:                                                   NO
+ PW_GRID|   Bounds   1            -30      29                Points:          60
+ PW_GRID|   Bounds   2            -30      29                Points:          60
+ PW_GRID|   Bounds   3            -30      29                Points:          60
+ PW_GRID| Volume element (a.u.^3)  0.2499         Volume (a.u.^3)     53986.6767
+ PW_GRID| Grid span                                                    FULLSPACE
+ PW_GRID|   Distribution                         Average         Max         Min
+ PW_GRID|   G-Vectors                            13500.0       13560       13440
+ PW_GRID|   G-Rays                                 225.0         226         224
+ PW_GRID|   Real Space Points                    13500.0       14400       10800
+
+ PW_GRID| Information for grid number                                          5
+ PW_GRID| Grid distributed over                                    16 processors
+ PW_GRID| Real space group dimensions                                    16    1
+ PW_GRID| the grid is blocked:                                                NO
+ PW_GRID| Cutoff [a.u.]                                                      4.0
+ PW_GRID| spherical cutoff:                                                   NO
+ PW_GRID|   Bounds   1            -17      17                Points:          35
+ PW_GRID|   Bounds   2            -17      17                Points:          35
+ PW_GRID|   Bounds   3            -17      17                Points:          35
+ PW_GRID| Volume element (a.u.^3)   1.259         Volume (a.u.^3)     53986.6767
+ PW_GRID| Grid span                                                    FULLSPACE
+ PW_GRID|   Distribution                         Average         Max         Min
+ PW_GRID|   G-Vectors                             2679.7        2730        2660
+ PW_GRID|   G-Rays                                  76.6          78          76
+ PW_GRID|   Real Space Points                     2679.7        3675        2450
+
+ PW_GRID| Information for grid number                                          6
+ PW_GRID| Grid distributed over                                    16 processors
+ PW_GRID| Real space group dimensions                                    16    1
+ PW_GRID| the grid is blocked:                                                NO
+ PW_GRID| Cutoff [a.u.]                                                      1.3
+ PW_GRID| spherical cutoff:                                                   NO
+ PW_GRID|   Bounds   1            -10       9                Points:          20
+ PW_GRID|   Bounds   2            -10       9                Points:          20
+ PW_GRID|   Bounds   3            -10       9                Points:          20
+ PW_GRID| Volume element (a.u.^3)   6.748         Volume (a.u.^3)     53986.6767
+ PW_GRID| Grid span                                                    FULLSPACE
+ PW_GRID|   Distribution                         Average         Max         Min
+ PW_GRID|   G-Vectors                              500.0         520         480
+ PW_GRID|   G-Rays                                  25.0          26          24
+ PW_GRID|   Real Space Points                      500.0         800         400
+
+ PW_GRID| Information for grid number                                          7
+ PW_GRID| Grid distributed over                                    16 processors
+ PW_GRID| Real space group dimensions                                     4    4
+ PW_GRID| the grid is blocked:                                                NO
+ PW_GRID| Cutoff [a.u.]                                                      0.4
+ PW_GRID| spherical cutoff:                                                   NO
+ PW_GRID|   Bounds   1             -5       5                Points:          11
+ PW_GRID|   Bounds   2             -5       5                Points:          11
+ PW_GRID|   Bounds   3             -5       5                Points:          11
+ PW_GRID| Volume element (a.u.^3)   40.56         Volume (a.u.^3)     53986.6767
+ PW_GRID| Grid span                                                    FULLSPACE
+ PW_GRID|   Distribution                         Average         Max         Min
+ PW_GRID|   G-Vectors                               83.2          99          77
+ PW_GRID|   G-Rays                                   7.6           9           7
+ PW_GRID|   Real Space Points                       83.2          99          44
+
+ PW_GRID| Information for grid number                                          8
+ PW_GRID| Grid distributed over                                    16 processors
+ PW_GRID| Real space group dimensions                                     4    4
+ PW_GRID| the grid is blocked:                                                NO
+ PW_GRID| Cutoff [a.u.]                                                      0.1
+ PW_GRID| spherical cutoff:                                                   NO
+ PW_GRID|   Bounds   1             -3       3                Points:           7
+ PW_GRID|   Bounds   2             -3       3                Points:           7
+ PW_GRID|   Bounds   3             -3       3                Points:           7
+ PW_GRID| Volume element (a.u.^3)   157.4         Volume (a.u.^3)     53986.6767
+ PW_GRID| Grid span                                                    FULLSPACE
+ PW_GRID|   Distribution                         Average         Max         Min
+ PW_GRID|   G-Vectors                               21.4          42          14
+ PW_GRID|   G-Rays                                   3.1           6           2
+ PW_GRID|   Real Space Points                       21.4          28           7
+
+ PW_GRID| Information for grid number                                          9
+ PW_GRID| Grid distributed over                                    16 processors
+ PW_GRID| Real space group dimensions                                     4    4
+ PW_GRID| the grid is blocked:                                                NO
+ PW_GRID| Cutoff [a.u.]                                                      0.0
+ PW_GRID| spherical cutoff:                                                   NO
+ PW_GRID|   Bounds   1             -1       1                Points:           3
+ PW_GRID|   Bounds   2             -1       1                Points:           3
+ PW_GRID|   Bounds   3             -1       1                Points:           3
+ PW_GRID| Volume element (a.u.^3)   2000.         Volume (a.u.^3)     53986.6767
+ PW_GRID| Grid span                                                    FULLSPACE
+ PW_GRID|   Distribution                         Average         Max         Min
+ PW_GRID|   G-Vectors                                1.7           6           0
+ PW_GRID|   G-Rays                                   0.6           2           0
+ PW_GRID|   Real Space Points                        1.7           3           0
+
+ PW_GRID| Information for grid number                                         10
+ PW_GRID| Grid distributed over                                    16 processors
+ PW_GRID| Real space group dimensions                                     4    4
+ PW_GRID| the grid is blocked:                                                NO
+ PW_GRID| Cutoff [a.u.]                                                      0.0
+ PW_GRID| spherical cutoff:                                                   NO
+ PW_GRID|   Bounds   1             -1       1                Points:           3
+ PW_GRID|   Bounds   2             -1       1                Points:           3
+ PW_GRID|   Bounds   3             -1       1                Points:           3
+ PW_GRID| Volume element (a.u.^3)   2000.         Volume (a.u.^3)     53986.6767
+ PW_GRID| Grid span                                                    FULLSPACE
+ PW_GRID|   Distribution                         Average         Max         Min
+ PW_GRID|   G-Vectors                                1.7           6           0
+ PW_GRID|   G-Rays                                   0.6           2           0
+ PW_GRID|   Real Space Points                        1.7           3           0
+
+ POISSON| Solver                                                         WAVELET
+ POISSON| Wavelet| Scaling function                                           40
+ POISSON| Periodicity                                                       NONE
+
+ RS_GRID| Information for grid number                                          1
+ RS_GRID|   Bounds   1           -154     153                Points:         308
+ RS_GRID|   Bounds   2           -154     153                Points:         308
+ RS_GRID|   Bounds   3           -154     153                Points:         308
+ RS_GRID| Real space distribution over                                  4 groups
+ RS_GRID| Real space distribution along direction                              2
+ RS_GRID| Border size                                                         27
+ RS_GRID| Real space distribution over                                  4 groups
+ RS_GRID| Real space distribution along direction                              3
+ RS_GRID| Border size                                                         27
+ RS_GRID|   Distribution                         Average         Max         Min
+ RS_GRID|   Planes                                 131.0         131         131
+ RS_GRID|   Distribution                         Average         Max         Min
+ RS_GRID|   Planes                                 131.0         131         131
+
+ RS_GRID| Information for grid number                                          2
+ RS_GRID|   Bounds   1            -90      89                Points:         180
+ RS_GRID|   Bounds   2            -90      89                Points:         180
+ RS_GRID|   Bounds   3            -90      89                Points:         180
+ RS_GRID| Real space distribution over                                  4 groups
+ RS_GRID| Real space distribution along direction                              2
+ RS_GRID| Border size                                                         26
+ RS_GRID| Real space distribution over                                  4 groups
+ RS_GRID| Real space distribution along direction                              3
+ RS_GRID| Border size                                                         26
+ RS_GRID|   Distribution                         Average         Max         Min
+ RS_GRID|   Planes                                  97.0          97          97
+ RS_GRID|   Distribution                         Average         Max         Min
+ RS_GRID|   Planes                                  97.0          97          97
+
+ RS_GRID| Information for grid number                                          3
+ RS_GRID|   Bounds   1            -52      52                Points:         105
+ RS_GRID|   Bounds   2            -52      52                Points:         105
+ RS_GRID|   Bounds   3            -52      52                Points:         105
+ RS_GRID| Real space fully replicated
+ RS_GRID| Group size                                                           1
+
+ RS_GRID| Information for grid number                                          4
+ RS_GRID|   Bounds   1            -30      29                Points:          60
+ RS_GRID|   Bounds   2            -30      29                Points:          60
+ RS_GRID|   Bounds   3            -30      29                Points:          60
+ RS_GRID| Real space fully replicated
+ RS_GRID| Group size                                                           1
+
+ RS_GRID| Information for grid number                                          5
+ RS_GRID|   Bounds   1            -17      17                Points:          35
+ RS_GRID|   Bounds   2            -17      17                Points:          35
+ RS_GRID|   Bounds   3            -17      17                Points:          35
+ RS_GRID| Real space fully replicated
+ RS_GRID| Group size                                                           1
+
+ RS_GRID| Information for grid number                                          6
+ RS_GRID|   Bounds   1            -10       9                Points:          20
+ RS_GRID|   Bounds   2            -10       9                Points:          20
+ RS_GRID|   Bounds   3            -10       9                Points:          20
+ RS_GRID| Real space fully replicated
+ RS_GRID| Group size                                                           1
+
+ RS_GRID| Information for grid number                                          7
+ RS_GRID|   Bounds   1             -5       5                Points:          11
+ RS_GRID|   Bounds   2             -5       5                Points:          11
+ RS_GRID|   Bounds   3             -5       5                Points:          11
+ RS_GRID| Real space fully replicated
+ RS_GRID| Group size                                                           1
+
+ RS_GRID| Information for grid number                                          8
+ RS_GRID|   Bounds   1             -3       3                Points:           7
+ RS_GRID|   Bounds   2             -3       3                Points:           7
+ RS_GRID|   Bounds   3             -3       3                Points:           7
+ RS_GRID| Real space fully replicated
+ RS_GRID| Group size                                                           1
+
+ RS_GRID| Information for grid number                                          9
+ RS_GRID|   Bounds   1             -1       1                Points:           3
+ RS_GRID|   Bounds   2             -1       1                Points:           3
+ RS_GRID|   Bounds   3             -1       1                Points:           3
+ RS_GRID| Real space fully replicated
+ RS_GRID| Group size                                                           1
+
+ RS_GRID| Information for grid number                                         10
+ RS_GRID|   Bounds   1             -1       1                Points:           3
+ RS_GRID|   Bounds   2             -1       1                Points:           3
+ RS_GRID|   Bounds   3             -1       1                Points:           3
+ RS_GRID| Real space fully replicated
+ RS_GRID| Group size                                                           1
+
+  HFX_INFO| Replica ID:                                                        1
+  HFX_INFO| EPS_SCHWARZ:                                                 1.0E-10
+  HFX_INFO| EPS_SCHWARZ_FORCES                                           1.0E-06
+  HFX_INFO| EPS_STORAGE_SCALING:                                         1.0E+00
+  HFX_INFO| NBINS:                                                            64
+  HFX_INFO| BLOCK_SIZE:                                                        1
+  HFX_INFO| FRACTION:                                               1.0000000000
+  HFX_INFO| Interaction Potential:                                       COULOMB
+  HFX_INFO| Number of periodic shells considered:                           NONE
+  HFX_INFO| Number of periodic cells considered:                            NONE
+
+
+ Spin 1
+
+ Number of electrons:                                                          2
+ Number of occupied orbitals:                                                  2
+ Number of molecular orbitals:                                                 2
+
+ Spin 2
+
+ Number of electrons:                                                          2
+ Number of occupied orbitals:                                                  2
+ Number of molecular orbitals:                                                 2
+
+ Number of orbital functions:                                                 20
+ Number of independent orbital functions:                                     20
+
+ Extrapolation method: initial_guess
+
+ Atomic guess: The first density matrix is obtained in terms of atomic orbitals
+               and electronic configurations assigned to each atomic kind
+
+ Guess for atomic kind: H
+
+ Electronic structure
+    Total number of core electrons                                          0.00
+    Total number of valence electrons                                       1.00
+    Total number of electrons                                               1.00
+    Multiplicity                                                   not specified
+    S      1.00
+
+
+ *******************************************************************************
+                  Iteration          Convergence                     Energy [au]
+ *******************************************************************************
+                          1        0.502405E-02                  -0.441325545302
+                          2        0.522833E-03                  -0.441349398950
+                          3        0.301100E-06                  -0.441349659850
+
+ Energy components [Hartree]           Total Energy ::           -0.441349659850
+                                        Band Energy ::           -0.216801195853
+                                     Kinetic Energy ::            0.454184052333
+                                   Potential Energy ::           -0.895533712183
+                                      Virial (-V/T) ::            1.971741868926
+                                        Core Energy ::           -0.496336881879
+                                          XC Energy ::           -0.243413638209
+                                     Coulomb Energy ::            0.298400860239
+
+ Orbital energies  State     L     Occupation   Energy[a.u.]          Energy[eV]
+
+                       1     0          1.000      -0.216801           -5.899461
+
+
+ Total Electron Density at R=0:                                         0.248919
+
+ Spin 1
+ Re-scaling the density matrix to get the right number of electrons for spin 1
+                  # Electrons              Trace(P)               Scaling factor
+                            2                 2.000                        1.000
+
+ Spin 2
+ Re-scaling the density matrix to get the right number of electrons for spin 2
+                  # Electrons              Trace(P)               Scaling factor
+                            2                 2.000                        1.000
+
+
+ SCF WAVEFUNCTION OPTIMIZATION
+
+  Step     Update method      Time    Convergence         Total energy    Change
+  ------------------------------------------------------------------------------
+
+  HFX_MEM_INFO| Est. max. program size before HFX [MiB]:                     691
+  HFX_MEM_INFO| Number of cart. primitive ERI's calculated:               112979
+  HFX_MEM_INFO| Number of sph. ERI's calculated:                           34375
+  HFX_MEM_INFO| Number of sph. ERI's stored in-core:                       34375
+  HFX_MEM_INFO| Number of sph. ERI's stored on disk:                           0
+  HFX_MEM_INFO| Number of sph. ERI's calculated on the fly:                    0
+  HFX_MEM_INFO| Total memory consumption ERI's RAM [MiB]:                      1
+  HFX_MEM_INFO| Whereof max-vals [MiB]:                                        1
+  HFX_MEM_INFO| Total compression factor ERI's RAM:                         2.10
+  HFX_MEM_INFO| Total memory consumption ERI's disk [MiB]:                     0
+  HFX_MEM_INFO| Total compression factor ERI's disk:                        0.00
+  HFX_MEM_INFO| Size of density/Fock matrix [MiB]:                             0
+  HFX_MEM_INFO| Size of buffers [MiB]:                                         0
+  HFX_MEM_INFO| Est. max. program size after HFX  [MiB]:                     692
+
+     1 P_Mix/Diag. 0.40E+00    5.7     0.18475053        -1.6113778358 -1.61E+00
+     2 P_Mix/Diag. 0.40E+00    5.2     0.10924725        -1.7919423263 -1.81E-01
+     3 P_Mix/Diag. 0.40E+00    5.2     0.06481294        -1.9131435540 -1.21E-01
+     4 DIIS/Diag.  0.54E-02    5.2     0.04270591        -1.9906183922 -7.75E-02
+     5 DIIS/Diag.  0.29E-03    5.2     0.00020964        -2.1138753605 -1.23E-01
+     6 DIIS/Diag.  0.54E-03    5.2     0.00008041        -2.1138751206  2.40E-07
+     7 DIIS/Diag.  0.21E-03    5.2     0.00006728        -2.1138754112 -2.91E-07
+     8 DIIS/Diag.  0.36E-04    5.2     0.00001234        -2.1138754641 -5.29E-08
+     9 DIIS/Diag.  0.45E-07    5.2     0.00000002        -2.1138754662 -2.11E-09
+    10 DIIS/Diag.  0.58E-08    5.2     1.1363E-09        -2.1138754662 -1.78E-15
+    11 DIIS/Diag.  0.38E-08    5.2     6.0305E-10        -2.1138754662 -2.66E-15
+
+  *** SCF run converged in    11 steps ***
+
+
+  Electronic density on regular grids:         -3.9788057418        0.0211942582
+  Core density on regular grids:                4.0000000000       -0.0000000000
+  Hard and soft densities (Lebedev):           -6.3937668499       -6.3725725856
+  Total Rho_soft + Rho1_hard - Rho1_soft       -4.0000000062
+  Total charge density (r-space):              -0.0000000062
+  Total Rho_soft + Rho0_soft (g-space):        -0.0000000197
+
+  Overlap energy of the core charge distribution:               0.00000053078629
+  Self energy of the core charge distribution:                 -5.64189583547756
+  Core Hamiltonian energy:                                      1.66663115474671
+  Hartree energy:                                               2.43801496372332
+  Exchange-correlation energy:                                  0.00000000000000
+  Hartree-Fock Exchange energy:                                -1.13910480404958
+
+  GAPW| Exc from hard and soft atomic rho1:                     0.00000000000000
+  GAPW| local Eh = 1 center integrals:                          0.56247852405310
+
+  Total energy:                                                -2.11387546621772
+
+  outer SCF iter =    1 RMS gradient =   0.00E+00 energy =         -2.1138754662
+  outer SCF loop converged in   1 iterations or   11 steps
+
+
+  Integrated absolute spin density  :                               0.0000000000
+  Ideal and single determinant S**2 :                    0.000000      -0.000000
+
+ !-----------------------------------------------------------------------------!
+                     Mulliken Population Analysis
+
+ #  Atom  Element  Kind  Atomic population (alpha,beta) Net charge  Spin moment
+       1     H        1         0.499790     0.499790     0.000421     0.000000
+       2     H        1         0.499790     0.499790     0.000421     0.000000
+       3     H        1         0.500210     0.500210    -0.000421     0.000000
+       4     H        1         0.500210     0.500210    -0.000421     0.000000
+ # Total charge and spin        2.000000     2.000000    -0.000000     0.000000
+
+ !-----------------------------------------------------------------------------!
+
+ !-----------------------------------------------------------------------------!
+                           Hirshfeld Charges
+
+  #Atom  Element  Kind  Ref Charge     Population       Spin moment  Net charge
+      1       H      1       1.000    0.473   0.473            0.000      0.054
+      2       H      1       1.000    0.473   0.473            0.000      0.054
+      3       H      1       1.000    0.440   0.440            0.000      0.119
+      4       H      1       1.000    0.440   0.440            0.000      0.119
+
+  Total Charge                                                            0.345
+ !-----------------------------------------------------------------------------!
+  
+  Eigenvalues of the occupied subspace spin            1
+ ---------------------------------------------
+      -0.59706129      -0.42032390
+ Fermi Energy [eV] :  -11.437595
+  
+  Eigenvalues of the occupied subspace spin            2
+ ---------------------------------------------
+      -0.59706129      -0.42032390
+ Fermi Energy [eV] :  -11.437595
+  
+  Lowest eigenvalues of the unoccupied subspace spin            1
+ ---------------------------------------------
+
+  
+  Lowest eigenvalues of the unoccupied subspace spin            2
+ ---------------------------------------------
+
+ -----------------------------------------------
+             MAXIMAL ORBITAL ANALYSIS           
+ -----------------------------------------------
+ INPUT TAGS:
+ NFRG =            6
+ LFRG =            1           1           1           1           2           2
+ IFRG =            1           2           3           4           1           2           3           4
+ NOMOA =            0           0           0           0           0           0           0           0           0           0           0           0           0           0           0           0           0           0           0           0
+ NOMOAA =            0
+ NOMOAB =            0
+ IFUNO =  F
+ IFPUN =  F
+ IFCUB =  F
+ -------------------------
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.064184      0.004120  1    0.004120
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.706017      0.498459  1    0.498459
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.064184      0.004120  1    0.004120
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.706017      0.498459  1    0.498459
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.039251      0.001541  1    0.001541
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.704188      0.495880  1    0.495880
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.039251      0.001541  1    0.001541
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.704188      0.495880  1    0.495880
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.064184      0.004120  1    0.004120
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.706017      0.498459  1    0.498459
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.064184      0.004120  1    0.004120
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.706017      0.498459  1    0.498459
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.039251      0.001541  1    0.001541
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.704188      0.495880  1    0.495880
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.039251      0.001541  1    0.001541
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.704188      0.495880  1    0.495880
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+   MOA for Atoms
+   -------------
+          ATOM            NUC       POP         CHRG          SPIN
+      ----------------------------------------------------
+        1       H         1      1.00516     -0.00516      0.00000
+        2       H         1      1.00516     -0.00516      0.00000
+        3       H         1      0.99484      0.00516      0.00000
+        4       H         1      0.99484      0.00516      0.00000
+ -------
+ Entered MOA fragment analysis section
+ nfrg, lfrg            6           1
+ -----------------------------------------------
+             MOA Fragment analysis           
+ -----------------------------------------------
+ Atoms in fragement,            1  are:            1
+ Total nuclear charge on fragement,            1  is:            1
+ Total nuclear charge on rest of the system is:            3
+ Basis functions in the fragment or not, for frag. #           1 T T T T T F F F F F F F F F F F F F F F
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ IAT, JAT =            1           1 T T
+ IAT, JAT =            1           2 T F
+ IAT, JAT =            1           3 T F
+ IAT, JAT =            1           4 T F
+ IAT, JAT =            2           1 F T
+ IAT, JAT =            2           2 F F
+ IAT, JAT =            2           3 F F
+ IAT, JAT =            2           4 F F
+ IAT, JAT =            3           1 F T
+ IAT, JAT =            3           2 F F
+ IAT, JAT =            3           3 F F
+ IAT, JAT =            3           4 F F
+ IAT, JAT =            4           1 F T
+ IAT, JAT =            4           2 F F
+ IAT, JAT =            4           3 F F
+ IAT, JAT =            4           4 F F
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           1
+  -------------------------------
+ ---------------------
+ alpha electrons
+ ---------------------
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           1
+  -------------------------------
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.064184      0.004120  1    0.004120
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.706017      0.498459  1    0.498459
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           1
+  -------------------------------
+ ---------------------
+ beta electrons
+ ---------------------
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           1
+  -------------------------------
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.064184      0.004120  1    0.004120
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.706017      0.498459  1    0.498459
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+ nfrg, lfrg            6           1
+ -----------------------------------------------
+             MOA Fragment analysis           
+ -----------------------------------------------
+ Atoms in fragement,            2  are:            2
+ Total nuclear charge on fragement,            2  is:            1
+ Total nuclear charge on rest of the system is:            3
+ Basis functions in the fragment or not, for frag. #           2 F F F F F T T T T T F F F F F F F F F F
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ IAT, JAT =            1           1 F F
+ IAT, JAT =            1           2 F T
+ IAT, JAT =            1           3 F F
+ IAT, JAT =            1           4 F F
+ IAT, JAT =            2           1 T F
+ IAT, JAT =            2           2 T T
+ IAT, JAT =            2           3 T F
+ IAT, JAT =            2           4 T F
+ IAT, JAT =            3           1 F F
+ IAT, JAT =            3           2 F T
+ IAT, JAT =            3           3 F F
+ IAT, JAT =            3           4 F F
+ IAT, JAT =            4           1 F F
+ IAT, JAT =            4           2 F T
+ IAT, JAT =            4           3 F F
+ IAT, JAT =            4           4 F F
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           2
+  -------------------------------
+ ---------------------
+ alpha electrons
+ ---------------------
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           2
+  -------------------------------
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.064184      0.004120  1    0.004120
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.706017      0.498459  1    0.498459
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           2
+  -------------------------------
+ ---------------------
+ beta electrons
+ ---------------------
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           2
+  -------------------------------
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.064184      0.004120  1    0.004120
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.706017      0.498459  1    0.498459
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+ nfrg, lfrg            6           1
+ -----------------------------------------------
+             MOA Fragment analysis           
+ -----------------------------------------------
+ Atoms in fragement,            3  are:            3
+ Total nuclear charge on fragement,            3  is:            1
+ Total nuclear charge on rest of the system is:            3
+ Basis functions in the fragment or not, for frag. #           3 F F F F F F F F F F T T T T T F F F F F
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ IAT, JAT =            1           1 F F
+ IAT, JAT =            1           2 F F
+ IAT, JAT =            1           3 F T
+ IAT, JAT =            1           4 F F
+ IAT, JAT =            2           1 F F
+ IAT, JAT =            2           2 F F
+ IAT, JAT =            2           3 F T
+ IAT, JAT =            2           4 F F
+ IAT, JAT =            3           1 T F
+ IAT, JAT =            3           2 T F
+ IAT, JAT =            3           3 T T
+ IAT, JAT =            3           4 T F
+ IAT, JAT =            4           1 F F
+ IAT, JAT =            4           2 F F
+ IAT, JAT =            4           3 F T
+ IAT, JAT =            4           4 F F
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           3
+  -------------------------------
+ ---------------------
+ alpha electrons
+ ---------------------
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           3
+  -------------------------------
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.039251      0.001541  1    0.001541
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.704188      0.495880  1    0.495880
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           3
+  -------------------------------
+ ---------------------
+ beta electrons
+ ---------------------
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           3
+  -------------------------------
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.039251      0.001541  1    0.001541
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.704188      0.495880  1    0.495880
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+ nfrg, lfrg            6           1
+ -----------------------------------------------
+             MOA Fragment analysis           
+ -----------------------------------------------
+ Atoms in fragement,            4  are:            4
+ Total nuclear charge on fragement,            4  is:            1
+ Total nuclear charge on rest of the system is:            3
+ Basis functions in the fragment or not, for frag. #           4 F F F F F F F F F F F F F F F T T T T T
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ IAT, JAT =            1           1 F F
+ IAT, JAT =            1           2 F F
+ IAT, JAT =            1           3 F F
+ IAT, JAT =            1           4 F T
+ IAT, JAT =            2           1 F F
+ IAT, JAT =            2           2 F F
+ IAT, JAT =            2           3 F F
+ IAT, JAT =            2           4 F T
+ IAT, JAT =            3           1 F F
+ IAT, JAT =            3           2 F F
+ IAT, JAT =            3           3 F F
+ IAT, JAT =            3           4 F T
+ IAT, JAT =            4           1 T F
+ IAT, JAT =            4           2 T F
+ IAT, JAT =            4           3 T F
+ IAT, JAT =            4           4 T T
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           4
+  -------------------------------
+ ---------------------
+ alpha electrons
+ ---------------------
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           4
+  -------------------------------
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.039251      0.001541  1    0.001541
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.704188      0.495880  1    0.495880
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           4
+  -------------------------------
+ ---------------------
+ beta electrons
+ ---------------------
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           4
+  -------------------------------
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.039251      0.001541  1    0.001541
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.704188      0.495880  1    0.495880
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+ nfrg, lfrg            6           2
+ -----------------------------------------------
+             MOA Fragment analysis           
+ -----------------------------------------------
+ Atoms in fragement,            5  are:            1           2
+ Total nuclear charge on fragement,            5  is:            2
+ Total nuclear charge on rest of the system is:            2
+ Basis functions in the fragment or not, for frag. #           5 T T T T T T T T T T F F F F F F F F F F
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ IAT, JAT =            1           1 T T
+ IAT, JAT =            1           2 T T
+ IAT, JAT =            1           3 T F
+ IAT, JAT =            1           4 T F
+ IAT, JAT =            2           1 T T
+ IAT, JAT =            2           2 T T
+ IAT, JAT =            2           3 T F
+ IAT, JAT =            2           4 T F
+ IAT, JAT =            3           1 F T
+ IAT, JAT =            3           2 F T
+ IAT, JAT =            3           3 F F
+ IAT, JAT =            3           4 F F
+ IAT, JAT =            4           1 F T
+ IAT, JAT =            4           2 F T
+ IAT, JAT =            4           3 F F
+ IAT, JAT =            4           4 F F
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           5
+  -------------------------------
+ ---------------------
+ alpha electrons
+ ---------------------
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           5
+  -------------------------------
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.081582      0.006656  1    0.006656
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.997643      0.995292  1    0.995292
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.000000      0.000000  1    0.000000
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           5
+  -------------------------------
+ ---------------------
+ beta electrons
+ ---------------------
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           5
+  -------------------------------
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.081582      0.006656  1    0.006656
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.997643      0.995292  1    0.995292
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.000000      0.000000  1    0.000000
+ nfrg, lfrg            6           2
+ -----------------------------------------------
+             MOA Fragment analysis           
+ -----------------------------------------------
+ Atoms in fragement,            6  are:            3           4
+ Total nuclear charge on fragement,            6  is:            2
+ Total nuclear charge on rest of the system is:            2
+ Basis functions in the fragment or not, for frag. #           6 F F F F F F F F F F T T T T T T T T T T
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           1 atom nameH                                                                               
+ IAT, JAT =            1           1 F F
+ IAT, JAT =            1           2 F F
+ IAT, JAT =            1           3 F T
+ IAT, JAT =            1           4 F T
+ IAT, JAT =            2           1 F F
+ IAT, JAT =            2           2 F F
+ IAT, JAT =            2           3 F T
+ IAT, JAT =            2           4 F T
+ IAT, JAT =            3           1 T F
+ IAT, JAT =            3           2 T F
+ IAT, JAT =            3           3 T T
+ IAT, JAT =            3           4 T T
+ IAT, JAT =            4           1 T F
+ IAT, JAT =            4           2 T F
+ IAT, JAT =            4           3 T T
+ IAT, JAT =            4           4 T T
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           6
+  -------------------------------
+ ---------------------
+ alpha electrons
+ ---------------------
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           6
+  -------------------------------
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.994635      0.989300  1    0.989300
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.052157      0.002720  1    0.002720
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.000000      0.000000  1    0.000000
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           6
+  -------------------------------
+ ---------------------
+ beta electrons
+ ---------------------
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           6
+  -------------------------------
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.994635      0.989300  1    0.989300
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.052157      0.002720  1    0.002720
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.000000      0.000000  1    0.000000
+   MOA for Fragments
+   -------------
+  FRAG   POP         CHRG          SPIN
+      ----------------------------------------------------
+    1      1.00516     -0.00516      0.00000
+    2      1.00516     -0.00516      0.00000
+    3      0.99484      0.00516      0.00000
+    4      0.99484      0.00516      0.00000
+    5      2.00389     -0.00389      0.00000
+    6      1.98404      0.01596      0.00000
+ ..... END of MOA analysis for Fragments .....
+  
+ ..... END of MOA analysis .....
+
+ ENERGY| Total FORCE_EVAL ( QS ) energy (a.u.):               -2.113875466217722
+
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                                DBCSR STATISTICS                             -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+ COUNTER                                    TOTAL       BLAS       SMM       ACC
+ flops     5 x     2 x     5                 1600     100.0%      0.0%      0.0%
+ flops     5 x     5 x     2                22000     100.0%      0.0%      0.0%
+ flops inhomo. stacks                           0       0.0%      0.0%      0.0%
+ flops total                        23.600000E+03     100.0%      0.0%      0.0%
+ flops max/rank                      2.600000E+03     100.0%      0.0%      0.0%
+ matmuls inhomo. stacks                         0       0.0%      0.0%      0.0%
+ matmuls total                                236     100.0%      0.0%      0.0%
+ number of processed stacks                   236     100.0%      0.0%      0.0%
+ average stack size                                     1.0       0.0       0.0
+ marketing flops                    36.800000E+03
+ -------------------------------------------------------------------------------
+ # multiplications                             23
+ max memory usage/rank             749.019136E+06
+ # max total images/rank                        1
+ # max 3D layers                                1
+ # MPI messages exchanged                    2208
+ MPI messages size (bytes):
+  total size                        52.800000E+03
+  min size                           0.000000E+00
+  max size                         200.000000E+00
+  average size                      23.913044E+00
+ MPI breakdown and total messages size (bytes):
+             size <=      128                2160                    43200
+       128 < size <=     8192                  48                     9600
+      8192 < size <=    32768                   0                        0
+     32768 < size <=   131072                   0                        0
+    131072 < size <=  4194304                   0                        0
+   4194304 < size <= 16777216                   0                        0
+  16777216 < size                               0                        0
+ -------------------------------------------------------------------------------
+
+ MEMORY| Estimated peak process memory [MiB]                                 730
+
+ -------------------------------------------------------------------------------
+ ----                             MULTIGRID INFO                            ----
+ -------------------------------------------------------------------------------
+ count for grid        1:           2962          cutoff [a.u.]          325.00
+ count for grid        2:           1180          cutoff [a.u.]          108.33
+ count for grid        3:            670          cutoff [a.u.]           36.11
+ count for grid        4:            160          cutoff [a.u.]           12.04
+ count for grid        5:              0          cutoff [a.u.]            4.01
+ count for grid        6:              0          cutoff [a.u.]            1.34
+ count for grid        7:              0          cutoff [a.u.]            0.45
+ count for grid        8:              0          cutoff [a.u.]            0.15
+ count for grid        9:              0          cutoff [a.u.]            0.05
+ count for grid       10:              0          cutoff [a.u.]            0.02
+ total gridlevel count  :           4972
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                         MESSAGE PASSING PERFORMANCE                         -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+
+ ROUTINE             CALLS      AVE VOLUME [Bytes]
+ MP_Group               62
+ MP_Bcast              235                   5383.
+ MP_Allreduce         1017                   1960.
+ MP_Sync               319
+ MP_Alltoall          1561                9592390.
+ MP_ISendRecv         6210                  85522.
+ MP_Wait             10189
+ MP_comm_split          22
+ MP_ISend             2984                1212275.
+ MP_IRecv             2984                1212166.
+ MP_Recv                 2                    160.
+ MP_Memory             916
+ -------------------------------------------------------------------------------
+
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                           R E F E R E N C E S                               -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+ 
+ CP2K version 6.1, the CP2K developers group (2018).
+ CP2K is freely available from https://www.cp2k.org/ .
+
+ Schuett, Ole; Messmer, Peter; Hutter, Juerg; VandeVondele, Joost. 
+ Electronic Structure Calculations on Graphics Processing Units, John Wiley & Sons, Ltd, 173-190 (2016). 
+ GPU-Accelerated Sparse Matrix-Matrix Multiplication for Linear Scaling Density Functional Theory.
+ http://dx.doi.org/10.1002/9781118670712.ch8
+
+
+ Borstnik, U; VandeVondele, J; Weber, V; Hutter, J. 
+ PARALLEL COMPUTING, 40 (5-6), 47-58 (2014). 
+ Sparse matrix multiplication: The distributed block-compressed sparse
+ row library.
+ http://dx.doi.org/10.1016/j.parco.2014.03.012
+
+
+ Hutter, J; Iannuzzi, M; Schiffmann, F; VandeVondele, J. 
+ WILEY INTERDISCIPLINARY REVIEWS-COMPUTATIONAL MOLECULAR SCIENCE, 4 (1), 15-25 (2014). 
+ CP2K: atomistic simulations of condensed matter systems.
+ http://dx.doi.org/10.1002/wcms.1159
+
+
+ Guidon, M; Hutter, J; VandeVondele, J. 
+ JOURNAL OF CHEMICAL THEORY AND COMPUTATION, 5 (11), 3010-3021 (2009). 
+ Robust Periodic Hartree-Fock Exchange for Large-Scale Simulations Using
+ Gaussian Basis Sets.
+ http://dx.doi.org/10.1021/ct900494g
+
+
+ Guidon, M; Schiffmann, F; Hutter, J; VandeVondele, J. 
+ JOURNAL OF CHEMICAL PHYSICS, 128 (21), 214104 (2008). 
+ Ab initio molecular dynamics using hybrid density functionals.
+ http://dx.doi.org/10.1063/1.2931945
+
+
+ Genovese, L; Deutsch, T; Goedecker, S. 
+ JOURNAL OF CHEMICAL PHYSICS, 127 (5), 054704 (2007). 
+ Efficient and accurate three-dimensional Poisson solver for surface
+ problems.
+ http://dx.doi.org/10.1063/1.2754685
+
+
+ Genovese, L; Deutsch, T; Neelov, A; Goedecker, S; Beylkin, G. 
+ JOURNAL OF CHEMICAL PHYSICS, 125 (7), 074105 (2006). 
+ Efficient solution of Poisson's equation with free boundary conditions.
+ http://dx.doi.org/10.1063/1.2335442
+
+
+ Frigo, M; Johnson, SG. 
+ PROCEEDINGS OF THE IEEE, 93 (2), 216-231 (2005). 
+ The design and implementation of FFTW3.
+ http://dx.doi.org/10.1109/JPROC.2004.840301
+
+
+ Lippert, G; Hutter, J; Parrinello, M. 
+ THEORETICAL CHEMISTRY ACCOUNTS, 103 (2), 124-140 (1999). 
+ The Gaussian and augmented-plane-wave density functional method for ab
+ initio molecular dynamics simulations.
+ http://dx.doi.org/10.1007/s002140050523
+
+
+ Krack, M; Parrinello, M. 
+ PHYSICAL CHEMISTRY CHEMICAL PHYSICS, 2 (10), 2105-2112 (2000). 
+ All-electron ab-initio molecular dynamics.
+ http://dx.doi.org/10.1039/b001167n
+
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                                T I M I N G                                  -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+ SUBROUTINE                       CALLS  ASD         SELF TIME        TOTAL TIME
+                                MAXIMUM       AVERAGE  MAXIMUM  AVERAGE  MAXIMUM
+ CP2K                                 1  1.0    0.046    0.048   62.560   62.560
+ qs_energies                          1  2.0    0.004    0.004   61.599   61.599
+ scf_env_do_scf                       1  3.0    0.000    0.000   59.274   59.276
+ scf_env_do_scf_inner_loop           11  4.0    0.001    0.003   59.271   59.273
+ qs_ks_update_qs_env                 11  5.0    0.000    0.000   40.113   40.115
+ rebuild_ks_matrix                   11  6.0    0.000    0.000   40.112   40.114
+ qs_ks_build_kohn_sham_matrix        11  7.0    0.008    0.010   40.112   40.114
+ pw_transfer                        539  9.3    0.021    0.025   34.986   35.763
+ fft_wrap_pw1pw2                    528 10.3    0.003    0.004   34.891   35.657
+ fft_wrap_pw1pw2_330                114 11.0    2.096    2.490   31.678   32.804
+ fft3d_ps                           528 12.3   17.243   18.161   27.707   28.542
+ qs_rho_update_rho                   12  5.0    0.000    0.000   20.786   20.786
+ calculate_rho_elec                  24  6.0    0.239    0.265   20.783   20.783
+ density_rs2pw                       24  7.0    0.002    0.002   19.526   19.900
+ pw_poisson_solve                    11  8.0    0.568    0.657   17.278   17.278
+ sum_up_and_integrate                11  8.0    0.000    0.000   11.960   11.964
+ integrate_v_rspace                  22  9.0    0.021    0.034   11.960   11.964
+ potential_pw2rs                     22 10.0    0.015    0.019   11.929   11.944
+ rs_pw_transfer                     485  9.4    0.004    0.004   10.891   11.126
+ mp_alltoall_z22v                   528 14.3    4.150    7.900    4.150    7.900
+ ps_wavelet_solve                    11  9.0    6.764    7.153    7.675    7.757
+ yz_to_x                            188 12.5    3.225    3.856    5.989    7.616
+ prepare_gapw_den                    11  8.0    0.006    0.009    4.908    4.965
+ x_to_yz                            156 14.2    3.076    3.690    4.461    4.800
+ put_rho0_on_grid                    11  9.0    0.099    0.105    4.700    4.757
+ rs_pw_transfer_PW2RS_330            35 11.1    2.534    3.122    4.032    4.416
+ mp_alltoall_d54                     11 10.0    0.501    4.373    0.501    4.373
+ rs_pw_transfer_RS2PW_330            36  9.6    2.782    3.295    4.069    4.362
+ mp_waitany                        2340 11.4    2.460    4.224    2.460    4.224
+ pw_gather_p                        284 11.3    2.867    3.032    2.867    3.032
+ fft_wrap_pw1pw2_110                 46 11.4    0.155    0.186    2.596    2.905
+ mp_sum_d                           651  3.4    0.941    2.493    0.941    2.493
+ pw_scatter_p                       244 13.5    2.035    2.209    2.035    2.209
+ pw_poisson_rebuild                  11  9.0    0.000    0.000    2.128    2.152
+ ps_wavelet_create                    1 10.0    0.000    0.000    2.128    2.152
+ RS_z_slice_distribution              1 11.0    1.932    2.110    2.128    2.152
+ mp_waitall_1                      7849 11.5    0.782    1.999    0.782    1.999
+ integrate_vhg0_rspace               11  8.0    0.095    0.112    1.781    1.800
+ init_scf_run                         1  3.0    0.000    0.000    1.789    1.789
+ scf_env_initial_rho_setup            1  4.0    0.000    0.000    1.765    1.765
+ rs_grid_zero                       320  8.1    1.417    1.690    1.417    1.690
+ rs_pw_transfer_PW2RS_110            22 12.0    0.470    0.565    0.980    1.363
+ -------------------------------------------------------------------------------
+
+ The number of warnings for this run is : 0
+ 
+ -------------------------------------------------------------------------------
+  **** **** ******  **  PROGRAM ENDED AT                 2020-01-08 18:21:57.866
+ ***** ** ***  *** **   PROGRAM RAN ON            cpn-p28-37.cbls.ccr.buffalo.ed
+ **    ****   ******    PROGRAM RAN BY                                  pavankum
+ ***** **    ** ** **   PROGRAM PROCESS ID                                 12457
+  **** **  *******  **  PROGRAM STOPPED IN /projects/academic/mdupuis2/pavan/MOA
+                                           /H2-dimer/cp2k
