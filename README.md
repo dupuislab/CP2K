@@ -1,4 +1,4 @@
-# cp2k-vab
+# CP2K-VAB Calculation
 PK Behara, M Dupuis, Electron transfer in extended systems: characterization by periodic density functional theory including the electronic coupling, Phys. Chem. Chem. Phys., 2020, Advance Article.(https://dx.doi.org/10.1039/C9CP05133C)
 
 Modifications to a cloned verison of CP2K-6.1 to calculate electron coupling matrix element VAB for molecular and periodic solids based on Farazdel & Dupuis work. [Ref. 1]
