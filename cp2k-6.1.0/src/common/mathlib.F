@@ -36,7 +36,7 @@ MODULE mathlib
              get_pseudo_inverse_svd, &
              get_pseudo_inverse_diag, &
              symmetrize_matrix, &
-             unit_matrix, diag
+             unit_matrix, diag, eigsrt
 
    ! Public functions
 

@@ -139,14 +139,14 @@ CONTAINS
          routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
+      TYPE(section_type), POINTER                        :: print_key
 
-      NULLIFY (keyword)
+      NULLIFY (keyword, print_key)
       CPASSERT(.NOT. ASSOCIATED(section))
       CALL section_create(section, "MOA", &
                           description="To do Maximal Orbital Analysis", &
                           n_keywords=9, n_subsections=0, repeats=.FALSE.)
 
-      NULLIFY (keyword)
       CALL keyword_create(keyword, name="_SECTION_PARAMETERS_", &
                                 description="controls the activation of the MOA analysis", &
                                 usage="&MOA T", default_l_val=.FALSE., lone_keyword_l_val=.TRUE.)
@@ -182,7 +182,7 @@ CONTAINS
                           "Any non-zero number will exclude that "// &
                           "particular orbital", &
                           usage="NOMOA 1 2 3", &
-                          n_var=-1, type_of_var=integer_t, default_i_vals=(/0/), repeats=.FALSE.)
+                          n_var=-1, type_of_var=integer_t, default_i_vals=(/-100000/), repeats=.FALSE.)
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
 
@@ -191,7 +191,7 @@ CONTAINS
                           "Any non-zero number will exclude that "// &
                           "particular orbital", &
                           usage="NOMOAA 1 2 3", &
-                          n_var=-1, type_of_var=integer_t, default_i_vals=(/0/), repeats=.FALSE.)
+                          n_var=-1, type_of_var=integer_t, default_i_vals=(/-100000/), repeats=.FALSE.)
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
 
@@ -199,31 +199,48 @@ CONTAINS
                           description="Exclude molecular orbitals"// &
                           "Any non-zero number will exclude that "// &
                           "particular orbital", &
-                          usage="NOMOAB 1 2 3", &
-                          n_var=-1, type_of_var=integer_t, default_i_vals=(/0/), repeats=.FALSE.)
+                          usage="NOMOAB 1 1 0", &
+                          n_var=-1, type_of_var=integer_t, default_i_vals=(/-100000/), repeats=.FALSE.)
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
 
-      CALL keyword_create(keyword, name="IFUNO", &
-                          description="If UHF Natural Orbitals", &
-                          usage="IFUNO .TRUE.", default_l_val=.FALSE., &
-                          lone_keyword_l_val=.TRUE.)
-      CALL section_add_keyword(section, keyword)
+      ! Subsection for Saving MOs to CUBE files
+      CALL cp_print_key_section_create(print_key, 'MO_CUBES', &
+                                       description="Controls saving of MO cube files", &
+                                       print_level=high_print_level, filename="")
+
+      ! Keyword #1: Stride
+      CALL keyword_create(keyword, name='STRIDE', &
+                          description="The stride (X,Y,Z) used to write the cube file", &
+                          usage="STRIDE {integer} {integer} {integer}", n_var=-1, &
+                          default_i_vals=(/2, 2, 2/), type_of_var=integer_t)
+      CALL section_add_keyword(print_key, keyword)
       CALL keyword_release(keyword)
 
-      CALL keyword_create(keyword, name="IFPUN", &
-                          description="Print out the MOA orbitals", &
-                          usage="IFPUN .TRUE.", default_l_val=.FALSE., &
-                          lone_keyword_l_val=.TRUE.)
-      CALL section_add_keyword(section, keyword)
+      ! Keyword #2: List of MO IDs
+      CALL keyword_create(keyword, name='MO_LIST', &
+                          description="Indices of molecular orbitals to save", &
+                          usage="MO_LIST {integer} {integer} .. {integer}", &
+                          type_of_var=integer_t, n_var=-1, repeats=.TRUE.)
+      CALL section_add_keyword(print_key, keyword)
       CALL keyword_release(keyword)
 
-      CALL keyword_create(keyword, name="IFCUB", &
-                          description="Print out gaussian like cube file with MOA orbitals", &
-                          usage="IFCUB .TRUE.", default_l_val=.FALSE., &
-                          lone_keyword_l_val=.TRUE.)
-      CALL section_add_keyword(section, keyword)
+      ! Keyword #2: Number of unoccupied states
+      CALL keyword_create(keyword, name='NLUMO', &
+                          description="Number of unoccupied molecular orbitals to save", &
+                          usage="NLUMO {integer}", default_i_val=1)
+      CALL section_add_keyword(print_key, keyword)
       CALL keyword_release(keyword)
+
+      ! Keyword #3: Number of occupied states
+      CALL keyword_create(keyword, name='NHOMO', &
+                          description="Number of occupied molecular orbitals to save", &
+                          usage="NHOMO {integer}", default_i_val=1)
+      CALL section_add_keyword(print_key, keyword)
+      CALL keyword_release(keyword)
+
+      CALL section_add_subsection(section, print_key)
+      CALL section_release(print_key)
 
 
    END SUBROUTINE create_moa_section
