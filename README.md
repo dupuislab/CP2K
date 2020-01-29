@@ -3,7 +3,7 @@
 
 Code addition to a cloned verison of CP2K-6.1 to calculate electron coupling matrix element VAB for molecular and periodic systems. <sup>[1]</sup> Calculation method is based on Farazdel & Dupuis work. <sup>[2]<sup> 
 
-![Image of Electron Transfer in 1D-Fe chain](https://https://github.com/dupuislab/CP2K/ET_CP2K/images/Figure3.tif)
+![Image of Electron Transfer in 1D-Fe chain](https://github.com/dupuislab/CP2K/tree/master/ET_CP2K/images/Figure3.tif)
 
 Testcases are in the folder ET_CP2K. Input section needs to be specified as follows:<br />
 Hartree Fock options are a replication of Guidon et al.'s HF section from CP2K manual https://manual.cp2k.org/cp2k-6_1-branch/CP2K_INPUT/FORCE_EVAL/DFT/XC/HF.html
