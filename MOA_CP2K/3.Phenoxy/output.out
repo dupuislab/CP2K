@@ -1,0 +1,1908 @@
+ DBCSR| Multiplication driver                                               BLAS
+ DBCSR| Multrec recursion limit                                              512
+ DBCSR| Multiplication stack size                                           1000
+ DBCSR| Maximum elements for images                                    UNLIMITED
+ DBCSR| Multiplicative factor virtual images                                   1
+ DBCSR| Multiplication size stacks                                             3
+ DBCSR| Number of 3D layers                                               SINGLE
+ DBCSR| Use MPI memory allocation                                              T
+ DBCSR| Use RMA algorithm                                                      F
+ DBCSR| Use Communication thread                                               T
+ DBCSR| Communication thread load                                             87
+
+
+  **** **** ******  **  PROGRAM STARTED AT               2020-01-29 16:10:15.308
+ ***** ** ***  *** **   PROGRAM STARTED ON        cpn-p28-38.cbls.ccr.buffalo.ed
+ **    ****   ******    PROGRAM STARTED BY                              pavankum
+ ***** **    ** ** **   PROGRAM PROCESS ID                                  3098
+  **** **  *******  **  PROGRAM STARTED IN /projects/academic/mdupuis2/pavan/cp2
+                                           k/cp2k-vab/MOA_CP2K/3.Phenoxy
+
+ CP2K| version string:                                          CP2K version 6.1
+ CP2K| source code revision number:                                    svn:18464
+ CP2K| cp2kflags: libint fftw3 libxc parallel mpi3 scalapack libderiv_max_am1=5 
+ CP2K|            libint_max_am=6
+ CP2K| is freely available from                            https://www.cp2k.org/
+ CP2K| Program compiled at                          Fri Nov 30 14:17:09 EST 2018
+ CP2K| Program compiled on                       srv-p22-12.cbls.ccr.buffalo.edu
+ CP2K| Program compiled for                                                local
+ CP2K| Data directory path    /projects/academic/mdupuis2/pavan/cp2k/cp2k-6.1/da
+ CP2K| Input file name                                                 input.inp
+
+ GLOBAL| Force Environment number                                              1
+ GLOBAL| Basis set file name                                     ./phenoxy.basis
+ GLOBAL| Potential file name                                 ./phenoxy.potential
+ GLOBAL| MM Potential file name                                     MM_POTENTIAL
+ GLOBAL| Coordinate file name                                      __STD_INPUT__
+ GLOBAL| Method name                                                        CP2K
+ GLOBAL| Project name                                                         p_
+ GLOBAL| Preferred FFT library                                             FFTSG
+ GLOBAL| Preferred diagonalization lib.                                       SL
+ GLOBAL| Run type                                                         ENERGY
+ GLOBAL| All-to-all communication in single precision                          F
+ GLOBAL| FFTs using library dependent lengths                                  T
+ GLOBAL| Global print level                                               MEDIUM
+ GLOBAL| Total number of message passing processes                            16
+ GLOBAL| Number of threads for this process                                    1
+ GLOBAL| This output is from process                                           0
+ GLOBAL| CPU model name :  Intel(R) Xeon(R) CPU E5-2650 v3 @ 2.30GHz
+
+ MEMORY| system memory details [Kb]
+ MEMORY|                        rank 0           min           max       average
+ MEMORY| MemTotal            131766868     131766868     131766868     131766868
+ MEMORY| MemFree             114627868     114627868     114627868     114627868
+ MEMORY| Buffers                400944        400944        400944        400944
+ MEMORY| Cached               13491468      13491468      13491468      13491468
+ MEMORY| Slab                   351512        351512        351512        351512
+ MEMORY| SReclaimable           257668        257668        257668        257668
+ MEMORY| MemLikelyFree       128777948     128777948     128777948     128777948
+
+
+ *** Fundamental physical constants (SI units) ***
+
+ *** Literature: B. J. Mohr and B. N. Taylor,
+ ***             CODATA recommended values of the fundamental physical
+ ***             constants: 2006, Web Version 5.1
+ ***             http://physics.nist.gov/constants
+
+ Speed of light in vacuum [m/s]                             2.99792458000000E+08
+ Magnetic constant or permeability of vacuum [N/A**2]       1.25663706143592E-06
+ Electric constant or permittivity of vacuum [F/m]          8.85418781762039E-12
+ Planck constant (h) [J*s]                                  6.62606896000000E-34
+ Planck constant (h-bar) [J*s]                              1.05457162825177E-34
+ Elementary charge [C]                                      1.60217648700000E-19
+ Electron mass [kg]                                         9.10938215000000E-31
+ Electron g factor [ ]                                     -2.00231930436220E+00
+ Proton mass [kg]                                           1.67262163700000E-27
+ Fine-structure constant                                    7.29735253760000E-03
+ Rydberg constant [1/m]                                     1.09737315685270E+07
+ Avogadro constant [1/mol]                                  6.02214179000000E+23
+ Boltzmann constant [J/K]                                   1.38065040000000E-23
+ Atomic mass unit [kg]                                      1.66053878200000E-27
+ Bohr radius [m]                                            5.29177208590000E-11
+
+ *** Conversion factors ***
+
+ [u] -> [a.u.]                                              1.82288848426455E+03
+ [Angstrom] -> [Bohr] = [a.u.]                              1.88972613288564E+00
+ [a.u.] = [Bohr] -> [Angstrom]                              5.29177208590000E-01
+ [a.u.] -> [s]                                              2.41888432650478E-17
+ [a.u.] -> [fs]                                             2.41888432650478E-02
+ [a.u.] -> [J]                                              4.35974393937059E-18
+ [a.u.] -> [N]                                              8.23872205491840E-08
+ [a.u.] -> [K]                                              3.15774647902944E+05
+ [a.u.] -> [kJ/mol]                                         2.62549961709828E+03
+ [a.u.] -> [kcal/mol]                                       6.27509468713739E+02
+ [a.u.] -> [Pa]                                             2.94210107994716E+13
+ [a.u.] -> [bar]                                            2.94210107994716E+08
+ [a.u.] -> [atm]                                            2.90362800883016E+08
+ [a.u.] -> [eV]                                             2.72113838565563E+01
+ [a.u.] -> [Hz]                                             6.57968392072181E+15
+ [a.u.] -> [1/cm] (wave numbers)                            2.19474631370540E+05
+ [a.u./Bohr**2] -> [1/cm]                                   5.14048714338585E+03
+ 
+
+ CELL_TOP| Volume [angstrom^3]:                                         3375.000
+ CELL_TOP| Vector a [angstrom    15.000     0.000     0.000    |a| =      15.000
+ CELL_TOP| Vector b [angstrom     0.000    15.000     0.000    |b| =      15.000
+ CELL_TOP| Vector c [angstrom     0.000     0.000    15.000    |c| =      15.000
+ CELL_TOP| Angle (b,c), alpha [degree]:                                   90.000
+ CELL_TOP| Angle (a,c), beta  [degree]:                                   90.000
+ CELL_TOP| Angle (a,b), gamma [degree]:                                   90.000
+ CELL_TOP| Numerically orthorhombic:                                         YES
+
+ GENERATE|  Preliminary Number of Bonds generated:                             0
+ GENERATE|  Achieved consistency in connectivity generation.
+
+ CELL| Volume [angstrom^3]:                                             3375.000
+ CELL| Vector a [angstrom]:      15.000     0.000     0.000    |a| =      15.000
+ CELL| Vector b [angstrom]:       0.000    15.000     0.000    |b| =      15.000
+ CELL| Vector c [angstrom]:       0.000     0.000    15.000    |c| =      15.000
+ CELL| Angle (b,c), alpha [degree]:                                       90.000
+ CELL| Angle (a,c), beta  [degree]:                                       90.000
+ CELL| Angle (a,b), gamma [degree]:                                       90.000
+ CELL| Numerically orthorhombic:                                             YES
+
+ CELL_REF| Volume [angstrom^3]:                                         3375.000
+ CELL_REF| Vector a [angstrom    15.000     0.000     0.000    |a| =      15.000
+ CELL_REF| Vector b [angstrom     0.000    15.000     0.000    |b| =      15.000
+ CELL_REF| Vector c [angstrom     0.000     0.000    15.000    |c| =      15.000
+ CELL_REF| Angle (b,c), alpha [degree]:                                   90.000
+ CELL_REF| Angle (a,c), beta  [degree]:                                   90.000
+ CELL_REF| Angle (a,b), gamma [degree]:                                   90.000
+ CELL_REF| Numerically orthorhombic:                                         YES
+
+ *******************************************************************************
+ *******************************************************************************
+ **                                                                           **
+ **     #####                         ##              ##                      **
+ **    ##   ##            ##          ##              ##                      **
+ **   ##     ##                       ##            ######                    **
+ **   ##     ##  ##   ##  ##   #####  ##  ##   ####   ##    #####    #####    **
+ **   ##     ##  ##   ##  ##  ##      ## ##   ##      ##   ##   ##  ##   ##   **
+ **   ##  ## ##  ##   ##  ##  ##      ####     ###    ##   ######   ######    **
+ **    ##  ###   ##   ##  ##  ##      ## ##      ##   ##   ##       ##        **
+ **     #######   #####   ##   #####  ##  ##  ####    ##    #####   ##        **
+ **           ##                                                    ##        **
+ **                                                                           **
+ **                                                ... make the atoms dance   **
+ **                                                                           **
+ **            Copyright (C) by CP2K developers group (2000 - 2018)           **
+ **                                                                           **
+ *******************************************************************************
+
+ DFT| Spin unrestricted (spin-polarized) Kohn-Sham calculation               UKS
+ DFT| Multiplicity                                                             2
+ DFT| Number of spin states                                                    2
+ DFT| Charge                                                                   0
+ DFT| Self-interaction correction (SIC)                                       NO
+ DFT| Cutoffs: density                                              1.000000E-10
+ DFT|          gradient                                             1.000000E-10
+ DFT|          tau                                                  1.000000E-10
+ DFT|          cutoff_smoothing_range                               0.000000E+00
+ DFT| XC density smoothing                                                  NONE
+ DFT| XC derivatives                                                          PW
+ FUNCTIONAL| NO EXCHANGE-CORRELATION FUNCTIONAL USED.
+
+ QS| Method:                                                                GAPW
+ QS| Density plane wave grid type                        NON-SPHERICAL FULLSPACE
+ QS| Number of grid levels:                                                    5
+ QS| Density cutoff [a.u.]:                                                300.0
+ QS| Using commensurate multigrids
+ QS| Multi grid cutoff [a.u.]: 1) grid level                               300.0
+ QS|                           2) grid level                                75.0
+ QS|                           3) grid level                                18.8
+ QS|                           4) grid level                                 4.7
+ QS|                           5) grid level                                 1.2
+ QS| Grid level progression factor:                                          4.0
+ QS| Relative density cutoff [a.u.]:                                        30.0
+ QS| Consistent realspace mapping and integration 
+ QS| Interaction thresholds: eps_pgf_orb:                                1.0E-12
+ QS|                         eps_filter_matrix:                          0.0E+00
+ QS|                         eps_core_charge:                            1.0E-16
+ QS|                         eps_rho_gspace:                             1.0E-14
+ QS|                         eps_rho_rspace:                             1.0E-14
+ QS|                         eps_gvg_rspace:                             1.0E-07
+ QS|                         eps_ppl:                                    1.0E-02
+ QS|                         eps_ppnl:                                   1.0E-09
+ QS| GAPW|                   eps_fit:                                    1.0E-04
+ QS| GAPW|                   eps_iso:                                    1.0E-12
+ QS| GAPW|                   eps_svd:                                    1.0E-08
+ QS| GAPW|                   eps_cpc:                                    1.0E-14
+ QS| GAPW|   atom-r-grid: quadrature:                 GC_LOG                        
+ QS| GAPW|      atom-s-grid:  max l :                                          4
+ QS| GAPW|      max_l_rho0 :                                                   2
+
+
+ ATOMIC KIND INFORMATION
+
+  1. Atomic kind: C                                     Number of atoms:       6
+
+     Orbital Basis Set                                                   6-31G**
+
+       Number of orbital shell sets:                                           4
+       Number of orbital shells:                                               6
+       Number of primitive Cartesian functions:                               11
+       Number of Cartesian basis functions:                                   15
+       Number of spherical basis functions:                                   14
+       Norm type:                                                              2
+
+       Normalised Cartesian orbitals:
+
+                        Set   Shell   Orbital            Exponent    Coefficient
+
+                          1       1    1s             3047.524880       0.536345
+                                                       457.369518       0.989452
+                                                       103.948685       1.597283
+                                                        29.210155       2.079187
+                                                         9.286663       1.774174
+                                                         3.163927       0.612580
+
+                          2       1    1s                7.868272      -0.399556
+                                                         1.881289      -0.184155
+                                                         0.544249       0.516390
+
+                          2       2    2px               7.868272       1.296082
+                                                         1.881289       0.993754
+                                                         0.544249       0.495953
+                          2       2    2py               7.868272       1.296082
+                                                         1.881289       0.993754
+                                                         0.544249       0.495953
+                          2       2    2pz               7.868272       1.296082
+                                                         1.881289       0.993754
+                                                         0.544249       0.495953
+
+                          3       1    1s                0.168714       0.187618
+
+                          3       2    2px               0.168714       0.154128
+                          3       2    2py               0.168714       0.154128
+                          3       2    2pz               0.168714       0.154128
+
+                          4       1    1dx2              0.800000       1.113825
+                          4       1    1dxy              0.800000       1.929201
+                          4       1    1dxz              0.800000       1.929201
+                          4       1    1dy2              0.800000       1.113825
+                          4       1    1dyz              0.800000       1.929201
+                          4       1    1dz2              0.800000       1.113825
+
+     The atoms of this atomic kind are PAW atoms (GAPW):
+       Hard Gaussian function radius:                                      1.512
+       Rho0 radius:                                                        1.512
+       Maximum GTO radius used for PAW projector construction:            24.566
+
+     GAPW Soft Basis Set                                            6-31G**_soft
+
+       Number of orbital shell sets:                                           4
+       Number of orbital shells:                                               6
+       Number of primitive Cartesian functions:                                5
+       Number of Cartesian basis functions:                                   15
+       Number of spherical basis functions:                                   14
+       Norm type:                                                              2
+
+       Normalised Cartesian orbitals:
+
+                        Set   Shell   Orbital            Exponent    Coefficient
+
+                          1       1    1s                3.163927       0.612580
+
+                          2       1    1s                1.881289      -0.184155
+                                                         0.544249       0.516390
+
+                          2       2    2px               1.881289       0.993754
+                                                         0.544249       0.495953
+                          2       2    2py               1.881289       0.993754
+                                                         0.544249       0.495953
+                          2       2    2pz               1.881289       0.993754
+                                                         0.544249       0.495953
+
+                          3       1    1s                0.168714       0.187618
+
+                          3       2    2px               0.168714       0.154128
+                          3       2    2py               0.168714       0.154128
+                          3       2    2pz               0.168714       0.154128
+
+                          4       1    1dx2              0.800000       1.113825
+                          4       1    1dxy              0.800000       1.929201
+                          4       1    1dxz              0.800000       1.929201
+                          4       1    1dy2              0.800000       1.113825
+                          4       1    1dyz              0.800000       1.929201
+                          4       1    1dz2              0.800000       1.113825
+
+     AE Potential information for                                            ALL
+
+       Description:                                       All-electron potential
+                                          Krack, Parrinello, PCCP 2, 2105 (2000)
+
+       Gaussian exponent of the core charge distribution:               4.109048
+       Electronic configuration (s p d ...):                           4   2   0
+
+  2. Atomic kind: O                                     Number of atoms:       1
+
+     Orbital Basis Set                                                   6-31G**
+
+       Number of orbital shell sets:                                           4
+       Number of orbital shells:                                               6
+       Number of primitive Cartesian functions:                               11
+       Number of Cartesian basis functions:                                   15
+       Number of spherical basis functions:                                   14
+       Norm type:                                                              2
+
+       Normalised Cartesian orbitals:
+
+                        Set   Shell   Orbital            Exponent    Coefficient
+
+                          1       1    1s             5484.671660       0.831724
+                                                       825.234946       1.530816
+                                                       188.046958       2.477149
+                                                        52.964500       3.256281
+                                                        16.897570       2.792893
+                                                         5.799635       0.954938
+
+                          2       1    1s               15.539616      -0.617934
+                                                         3.599934      -0.275721
+                                                         1.013762       0.814208
+
+                          2       2    2px              15.539616       3.116944
+                                                         3.599934       2.401438
+                                                         1.013762       1.054360
+                          2       2    2py              15.539616       3.116944
+                                                         3.599934       2.401438
+                                                         1.013762       1.054360
+                          2       2    2pz              15.539616       3.116944
+                                                         3.599934       2.401438
+                                                         1.013762       1.054360
+
+                          3       1    1s                0.270006       0.266956
+
+                          3       2    2px               0.270006       0.277432
+                          3       2    2py               0.270006       0.277432
+                          3       2    2pz               0.270006       0.277432
+
+                          4       1    1dx2              0.800000       1.113825
+                          4       1    1dxy              0.800000       1.929201
+                          4       1    1dxz              0.800000       1.929201
+                          4       1    1dy2              0.800000       1.113825
+                          4       1    1dyz              0.800000       1.929201
+                          4       1    1dz2              0.800000       1.113825
+
+     The atoms of this atomic kind are PAW atoms (GAPW):
+       Hard Gaussian function radius:                                      1.512
+       Rho0 radius:                                                        1.512
+       Maximum GTO radius used for PAW projector construction:            24.566
+
+     GAPW Soft Basis Set                                            6-31G**_soft
+
+       Number of orbital shell sets:                                           4
+       Number of orbital shells:                                               6
+       Number of primitive Cartesian functions:                                4
+       Number of Cartesian basis functions:                                   15
+       Number of spherical basis functions:                                   14
+       Norm type:                                                              2
+
+       Normalised Cartesian orbitals:
+
+                        Set   Shell   Orbital            Exponent    Coefficient
+
+                          1       1    1s         
+
+                          2       1    1s                3.599934      -0.275721
+                                                         1.013762       0.814208
+
+                          2       2    2px               3.599934       2.401438
+                                                         1.013762       1.054360
+                          2       2    2py               3.599934       2.401438
+                                                         1.013762       1.054360
+                          2       2    2pz               3.599934       2.401438
+                                                         1.013762       1.054360
+
+                          3       1    1s                0.270006       0.266956
+
+                          3       2    2px               0.270006       0.277432
+                          3       2    2py               0.270006       0.277432
+                          3       2    2pz               0.270006       0.277432
+
+                          4       1    1dx2              0.800000       1.113825
+                          4       1    1dxy              0.800000       1.929201
+                          4       1    1dxz              0.800000       1.929201
+                          4       1    1dy2              0.800000       1.113825
+                          4       1    1dyz              0.800000       1.929201
+                          4       1    1dz2              0.800000       1.113825
+
+     AE Potential information for                                            ALL
+
+       Description:                                       All-electron potential
+                                          Krack, Parrinello, PCCP 2, 2105 (2000)
+
+       Gaussian exponent of the core charge distribution:               8.154466
+       Electronic configuration (s p d ...):                           4   4   0
+
+  3. Atomic kind: H                                     Number of atoms:       5
+
+     Orbital Basis Set                                                   6-31G**
+
+       Number of orbital shell sets:                                           3
+       Number of orbital shells:                                               3
+       Number of primitive Cartesian functions:                                5
+       Number of Cartesian basis functions:                                    5
+       Number of spherical basis functions:                                    5
+       Norm type:                                                              2
+
+       Normalised Cartesian orbitals:
+
+                        Set   Shell   Orbital            Exponent    Coefficient
+
+                          1       1    1s               18.731137       0.214935
+                                                         2.825394       0.364571
+                                                         0.640122       0.415051
+
+                          2       1    1s                0.161278       0.181381
+
+                          3       1    1px               1.100000       1.605761
+                          3       1    1py               1.100000       1.605761
+                          3       1    1pz               1.100000       1.605761
+
+     The atoms of this atomic kind are PAW atoms (GAPW):
+       Hard Gaussian function radius:                                      1.200
+       Rho0 radius:                                                        1.200
+       Maximum GTO radius used for PAW projector construction:            24.566
+
+     GAPW Soft Basis Set                                            6-31G**_soft
+
+       Number of orbital shell sets:                                           3
+       Number of orbital shells:                                               3
+       Number of primitive Cartesian functions:                                4
+       Number of Cartesian basis functions:                                    5
+       Number of spherical basis functions:                                    5
+       Norm type:                                                              2
+
+       Normalised Cartesian orbitals:
+
+                        Set   Shell   Orbital            Exponent    Coefficient
+
+                          1       1    1s                2.825394       0.364571
+                                                         0.640122       0.415051
+
+                          2       1    1s                0.161278       0.181381
+
+                          3       1    1px               1.100000       1.605761
+                          3       1    1py               1.100000       1.605761
+                          3       1    1pz               1.100000       1.605761
+
+     AE Potential information for                                            ALL
+
+       Description:                                       All-electron potential
+                                          Krack, Parrinello, PCCP 2, 2105 (2000)
+
+       Gaussian exponent of the core charge distribution:              12.500000
+       Electronic configuration (s p d ...):                           1   0   0
+
+
+ MOLECULE KIND INFORMATION
+
+
+ All atoms are their own molecule, skipping detailed information
+
+
+ TOTAL NUMBERS AND MAXIMUM NUMBERS
+
+  Total number of            - Atomic kinds:                                   3
+                             - Atoms:                                         12
+                             - Shell sets:                                    43
+                             - Shells:                                        57
+                             - Primitive Cartesian functions:                102
+                             - Cartesian basis functions:                    130
+                             - Spherical basis functions:                    123
+
+  Maximum angular momentum of the orbital basis functions:                     2
+
+
+ MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom
+
+  Atom  Kind  Element       X           Y           Z          Z(eff)       Mass
+
+       1     1 C    6    8.188000    7.506000    6.136000      6.00      12.0107
+       2     1 C    6    7.819000    8.698000    6.744000      6.00      12.0107
+       3     1 C    6    7.197000    8.702000    7.978000      6.00      12.0107
+       4     1 C    6    6.938000    7.497000    8.617000      6.00      12.0107
+       5     1 C    6    7.302000    6.300000    8.021000      6.00      12.0107
+       6     1 C    6    7.926000    6.312000    6.782000      6.00      12.0107
+       7     2 O    8    6.328000    7.549000    9.824000      8.00      15.9994
+       8     3 H    1    8.672000    7.511000    5.176000      1.00       1.0079
+       9     3 H    1    8.017000    9.634000    6.253000      1.00       1.0079
+      10     3 H    1    6.907000    9.618000    8.457000      1.00       1.0079
+      11     3 H    1    7.101000    5.366000    8.518000      1.00       1.0079
+      12     3 H    1    8.205000    5.379000    6.326000      1.00       1.0079
+
+
+
+
+ SCF PARAMETERS         Density guess:                                   RESTART
+                        --------------------------------------------------------
+                        max_scf:                                             500
+                        max_scf_history:                                       0
+                        max_diis:                                              4
+                        --------------------------------------------------------
+                        eps_scf:                                        1.00E-07
+                        eps_scf_history:                                0.00E+00
+                        eps_diis:                                       1.00E-01
+                        eps_eigval:                                     1.00E-05
+                        --------------------------------------------------------
+                        level_shift [a.u.]:                                 0.00
+                        --------------------------------------------------------
+                        Mixing method:                           DIRECT_P_MIXING
+                        --------------------------------------------------------
+                        Outer loop SCF in use 
+                        No variables optimised in outer loop
+                        eps_scf                                         1.00E-07
+                        max_scf                                                1
+                        No outer loop optimization
+                        step_size                                       5.00E-01
+
+ PW_GRID| Information for grid number                                          1
+ PW_GRID| Grid distributed over                                    16 processors
+ PW_GRID| Real space group dimensions                                    16    1
+ PW_GRID| the grid is blocked:                                                NO
+ PW_GRID| Cutoff [a.u.]                                                    300.0
+ PW_GRID| spherical cutoff:                                                   NO
+ PW_GRID|   Bounds   1           -120     119                Points:         240
+ PW_GRID|   Bounds   2           -120     119                Points:         240
+ PW_GRID|   Bounds   3           -120     119                Points:         240
+ PW_GRID| Volume element (a.u.^3)  0.1648E-02     Volume (a.u.^3)     22775.6292
+ PW_GRID| Grid span                                                    FULLSPACE
+ PW_GRID|   Distribution                         Average         Max         Min
+ PW_GRID|   G-Vectors                           864000.0      864000      864000
+ PW_GRID|   G-Rays                                3600.0        3600        3600
+ PW_GRID|   Real Space Points                   864000.0      864000      864000
+
+ PW_GRID| Information for grid number                                          2
+ PW_GRID| Grid distributed over                                    16 processors
+ PW_GRID| Real space group dimensions                                    16    1
+ PW_GRID| the grid is blocked:                                                NO
+ PW_GRID| Cutoff [a.u.]                                                     75.0
+ PW_GRID| spherical cutoff:                                                   NO
+ PW_GRID|   Bounds   1            -60      59                Points:         120
+ PW_GRID|   Bounds   2            -60      59                Points:         120
+ PW_GRID|   Bounds   3            -60      59                Points:         120
+ PW_GRID| Volume element (a.u.^3)  0.1318E-01     Volume (a.u.^3)     22775.6292
+ PW_GRID| Grid span                                                    FULLSPACE
+ PW_GRID|   Distribution                         Average         Max         Min
+ PW_GRID|   G-Vectors                           108000.0      108240      107880
+ PW_GRID|   G-Rays                                 900.0         902         899
+ PW_GRID|   Real Space Points                   108000.0      115200      100800
+
+ PW_GRID| Information for grid number                                          3
+ PW_GRID| Grid distributed over                                    16 processors
+ PW_GRID| Real space group dimensions                                    16    1
+ PW_GRID| the grid is blocked:                                                NO
+ PW_GRID| Cutoff [a.u.]                                                     18.8
+ PW_GRID| spherical cutoff:                                                   NO
+ PW_GRID|   Bounds   1            -30      29                Points:          60
+ PW_GRID|   Bounds   2            -30      29                Points:          60
+ PW_GRID|   Bounds   3            -30      29                Points:          60
+ PW_GRID| Volume element (a.u.^3)  0.1054         Volume (a.u.^3)     22775.6292
+ PW_GRID| Grid span                                                    FULLSPACE
+ PW_GRID|   Distribution                         Average         Max         Min
+ PW_GRID|   G-Vectors                            13500.0       13560       13440
+ PW_GRID|   G-Rays                                 225.0         226         224
+ PW_GRID|   Real Space Points                    13500.0       14400       10800
+
+ PW_GRID| Information for grid number                                          4
+ PW_GRID| Grid distributed over                                    16 processors
+ PW_GRID| Real space group dimensions                                    16    1
+ PW_GRID| the grid is blocked:                                                NO
+ PW_GRID| Cutoff [a.u.]                                                      4.7
+ PW_GRID| spherical cutoff:                                                   NO
+ PW_GRID|   Bounds   1            -15      14                Points:          30
+ PW_GRID|   Bounds   2            -15      14                Points:          30
+ PW_GRID|   Bounds   3            -15      14                Points:          30
+ PW_GRID| Volume element (a.u.^3)  0.8435         Volume (a.u.^3)     22775.6292
+ PW_GRID| Grid span                                                    FULLSPACE
+ PW_GRID|   Distribution                         Average         Max         Min
+ PW_GRID|   G-Vectors                             1687.5        1710        1680
+ PW_GRID|   G-Rays                                  56.2          57          56
+ PW_GRID|   Real Space Points                     1687.5        1800         900
+
+ PW_GRID| Information for grid number                                          5
+ PW_GRID| Grid distributed over                                    16 processors
+ PW_GRID| Real space group dimensions                                     4    4
+ PW_GRID| the grid is blocked:                                                NO
+ PW_GRID| Cutoff [a.u.]                                                      1.2
+ PW_GRID| spherical cutoff:                                                   NO
+ PW_GRID|   Bounds   1             -7       7                Points:          15
+ PW_GRID|   Bounds   2             -7       7                Points:          15
+ PW_GRID|   Bounds   3             -7       7                Points:          15
+ PW_GRID| Volume element (a.u.^3)   6.748         Volume (a.u.^3)     22775.6292
+ PW_GRID| Grid span                                                    FULLSPACE
+ PW_GRID|   Distribution                         Average         Max         Min
+ PW_GRID|   G-Vectors                              210.9         285         150
+ PW_GRID|   G-Rays                                  14.1          19          10
+ PW_GRID|   Real Space Points                      210.9         240         135
+
+ POISSON| Solver                                                         WAVELET
+ POISSON| Wavelet| Scaling function                                           40
+ POISSON| Periodicity                                                       NONE
+
+ RS_GRID| Information for grid number                                          1
+ RS_GRID|   Bounds   1           -120     119                Points:         240
+ RS_GRID|   Bounds   2           -120     119                Points:         240
+ RS_GRID|   Bounds   3           -120     119                Points:         240
+ RS_GRID| Real space distribution over                                  4 groups
+ RS_GRID| Real space distribution along direction                              2
+ RS_GRID| Border size                                                         34
+ RS_GRID| Real space distribution over                                  4 groups
+ RS_GRID| Real space distribution along direction                              3
+ RS_GRID| Border size                                                         34
+ RS_GRID|   Distribution                         Average         Max         Min
+ RS_GRID|   Planes                                 128.0         128         128
+ RS_GRID|   Distribution                         Average         Max         Min
+ RS_GRID|   Planes                                 128.0         128         128
+
+ RS_GRID| Information for grid number                                          2
+ RS_GRID|   Bounds   1            -60      59                Points:         120
+ RS_GRID|   Bounds   2            -60      59                Points:         120
+ RS_GRID|   Bounds   3            -60      59                Points:         120
+ RS_GRID| Real space fully replicated
+ RS_GRID| Group size                                                           1
+
+ RS_GRID| Information for grid number                                          3
+ RS_GRID|   Bounds   1            -30      29                Points:          60
+ RS_GRID|   Bounds   2            -30      29                Points:          60
+ RS_GRID|   Bounds   3            -30      29                Points:          60
+ RS_GRID| Real space fully replicated
+ RS_GRID| Group size                                                           1
+
+ RS_GRID| Information for grid number                                          4
+ RS_GRID|   Bounds   1            -15      14                Points:          30
+ RS_GRID|   Bounds   2            -15      14                Points:          30
+ RS_GRID|   Bounds   3            -15      14                Points:          30
+ RS_GRID| Real space fully replicated
+ RS_GRID| Group size                                                           1
+
+ RS_GRID| Information for grid number                                          5
+ RS_GRID|   Bounds   1             -7       7                Points:          15
+ RS_GRID|   Bounds   2             -7       7                Points:          15
+ RS_GRID|   Bounds   3             -7       7                Points:          15
+ RS_GRID| Real space fully replicated
+ RS_GRID| Group size                                                           1
+
+  HFX_INFO| Replica ID:                                                        1
+  HFX_INFO| EPS_SCHWARZ:                                                 1.0E-10
+  HFX_INFO| EPS_SCHWARZ_FORCES                                           1.0E-06
+  HFX_INFO| EPS_STORAGE_SCALING:                                         1.0E+00
+  HFX_INFO| NBINS:                                                            64
+  HFX_INFO| BLOCK_SIZE:                                                        1
+  HFX_INFO| FRACTION:                                               1.0000000000
+  HFX_INFO| Interaction Potential:                                       COULOMB
+  HFX_INFO| Number of periodic shells considered:                           NONE
+  HFX_INFO| Number of periodic cells considered:                            NONE
+
+
+ Spin 1
+
+ Number of electrons:                                                         25
+ Number of occupied orbitals:                                                 25
+ Number of molecular orbitals:                                                25
+
+ Spin 2
+
+ Number of electrons:                                                         24
+ Number of occupied orbitals:                                                 24
+ Number of molecular orbitals:                                                24
+
+ Number of orbital functions:                                                123
+ Number of independent orbital functions:                                    123
+
+ Extrapolation method: initial_guess
+
+
+ SCF WAVEFUNCTION OPTIMIZATION
+
+  Step     Update method      Time    Convergence         Total energy    Change
+  ------------------------------------------------------------------------------
+
+  HFX_MEM_INFO| Est. max. program size before HFX [MiB]:                     383
+  HFX_MEM_INFO| Number of cart. primitive ERI's calculated:            262364261
+  HFX_MEM_INFO| Number of sph. ERI's calculated:                        32306061
+  HFX_MEM_INFO| Number of sph. ERI's stored in-core:                    32306061
+  HFX_MEM_INFO| Number of sph. ERI's stored on disk:                           0
+  HFX_MEM_INFO| Number of sph. ERI's calculated on the fly:                    0
+  HFX_MEM_INFO| Total memory consumption ERI's RAM [MiB]:                     93
+  HFX_MEM_INFO| Whereof max-vals [MiB]:                                        1
+  HFX_MEM_INFO| Total compression factor ERI's RAM:                         2.68
+  HFX_MEM_INFO| Total memory consumption ERI's disk [MiB]:                     0
+  HFX_MEM_INFO| Total compression factor ERI's disk:                        0.00
+  HFX_MEM_INFO| Size of density/Fock matrix [MiB]:                             0
+  HFX_MEM_INFO| Size of buffers [MiB]:                                         0
+  HFX_MEM_INFO| Est. max. program size after HFX  [MiB]:                     384
+
+     1 P_Mix/Diag. 0.40E+00    5.9     0.00000008      -304.9723536581 -3.05E+02
+
+  *** SCF run converged in     1 steps ***
+
+
+  Electronic density on regular grids:        -36.3212402159       12.6787597841
+  Core density on regular grids:               49.0000000000       -0.0000000000
+  Hard and soft densities (Lebedev):          -82.4806142249      -69.8018542961
+  Total Rho_soft + Rho1_hard - Rho1_soft      -49.0000001447
+  Total charge density (r-space):              -0.0000001447
+  Total Rho_soft + Rho0_soft (g-space):        -0.0000002666
+
+  Overlap energy of the core charge distribution:               0.00001561141040
+  Self energy of the core charge distribution:               -254.63896973652277
+  Core Hamiltonian energy:                                    -48.03311026809756
+  Hartree energy:                                              95.22883565567129
+  Exchange-correlation energy:                                  0.00000000000000
+  Hartree-Fock Exchange energy:                               -41.30203722272165
+
+  GAPW| Exc from hard and soft atomic rho1:                     0.00000000000000
+  GAPW| local Eh = 1 center integrals:                        -56.22708769784444
+
+  Total energy:                                              -304.97235365810479
+
+  outer SCF iter =    1 RMS gradient =   0.00E+00 energy =       -304.9723536581
+  outer SCF loop converged in   1 iterations or    1 steps
+
+
+  Integrated absolute spin density  :                               3.5698146422
+  Ideal and single determinant S**2 :                    0.750000       1.346970
+
+ !-----------------------------------------------------------------------------!
+                     Mulliken Population Analysis
+
+ #  Atom  Element  Kind  Atomic population (alpha,beta) Net charge  Spin moment
+       1     C        1         3.452304     2.681041    -0.133345     0.771263
+       2     C        1         2.711442     3.442783    -0.154225    -0.731341
+       3     C        1         3.460619     2.684360    -0.144979     0.776259
+       4     C        1         2.452847     3.166579     0.380574    -0.713732
+       5     C        1         3.464691     2.682025    -0.146716     0.782666
+       6     C        1         2.711627     3.441630    -0.153258    -0.730003
+       7     O        2         4.688349     3.786742    -0.475091     0.901607
+       8     H        3         0.396356     0.442866     0.160777    -0.046510
+       9     H        3         0.443244     0.400272     0.156484     0.042972
+      10     H        3         0.388014     0.435770     0.176216    -0.047756
+      11     H        3         0.388245     0.436579     0.175176    -0.048334
+      12     H        3         0.442262     0.399353     0.158385     0.042909
+ # Total charge and spin       25.000000    24.000000    -0.000000     1.000000
+
+ !-----------------------------------------------------------------------------!
+
+ !-----------------------------------------------------------------------------!
+                           Hirshfeld Charges
+
+  #Atom  Element  Kind  Ref Charge     Population       Spin moment  Net charge
+      1       C      1       6.000    3.444   3.018            0.426     -0.462
+      2       C      1       6.000    3.045   3.430           -0.385     -0.475
+      3       C      1       6.000    3.443   3.003            0.439     -0.446
+      4       C      1       6.000    2.735   3.053           -0.318      0.212
+      5       C      1       6.000    3.446   3.002            0.444     -0.448
+      6       C      1       6.000    3.044   3.429           -0.384     -0.473
+      7       O      2       8.000    4.566   3.774            0.792     -0.341
+      8       H      3       1.000    0.252   0.263           -0.011      0.486
+      9       H      3       1.000    0.263   0.253            0.010      0.484
+     10       H      3       1.000    0.249   0.260           -0.012      0.491
+     11       H      3       1.000    0.249   0.261           -0.012      0.491
+     12       H      3       1.000    0.263   0.253            0.010      0.485
+
+  Total Charge                                                            0.004
+ !-----------------------------------------------------------------------------!
+  
+  Eigenvalues of the occupied subspace spin            1
+ ---------------------------------------------
+     -20.61468334     -11.28320667     -11.24940476     -11.24823119
+     -11.24417658     -11.23419650     -11.23246893      -1.39117578
+      -1.16445252      -1.03620501      -1.01989072      -0.84481454
+      -0.81827289      -0.71714448      -0.65959254      -0.65845025
+      -0.63955438      -0.61041072      -0.60088906      -0.53348378
+      -0.52718802      -0.51437848      -0.47653264      -0.37950634
+      -0.36729238
+ Fermi Energy [eV] :   -9.994534
+  
+  Eigenvalues of the occupied subspace spin            2
+ ---------------------------------------------
+     -20.57863025     -11.29780720     -11.24769123     -11.24598744
+     -11.23507348     -11.23365682     -11.22975458      -1.29460240
+      -1.15055332      -1.03199762      -0.98818311      -0.84505069
+      -0.81510421      -0.70708352      -0.65500947      -0.64719490
+      -0.60024964      -0.59551941      -0.52799468      -0.52251133
+      -0.51956326      -0.44936105      -0.40326452      -0.36919853
+ Fermi Energy [eV] :  -10.046403
+  
+  Lowest eigenvalues of the unoccupied subspace spin            1
+ ---------------------------------------------
+
+  
+  Lowest eigenvalues of the unoccupied subspace spin            2
+ ---------------------------------------------
+
+ -----------------------------------------------
+             MAXIMAL ORBITAL ANALYSIS           
+ -----------------------------------------------
+ Entered the else-if part of nomoa
+ SIZE of NOMOA is           25  and nmo is           25
+ Size of Alpha orbs is          25
+ Size of Beta orbs is          24
+ INPUT TAGS:
+ NFRG =            2
+ LFRG =            1           6
+ IFRG =            7           1           2           3           4           5           6
+ NOMOA =            1           2           3           4           5           6           7           0           0           0           0           0           0           0           0           0           0           0           0           0           0           0           0           0           0
+ NOMOAA =            1           2           3           4           5           6           7           0           0           0           0           0           0           0           0           0           0           0           0           0           0           0           0           0           0
+ NOMOAB =            1           2           3           4           5           6           7           0           0           0           0           0           0           0           0           0           0           0           0           0           0           0           0           0
+ IF MO_CUBE PRINT IS ACTIVE THEN
+ MO_LIST =            1           2           3
+ -------------------------
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+ No. of spherical basis fns is           14 for atom kind           2 atom nameO                                                                               
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.000617      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.012082      0.000146  1    0.000146
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.021376      0.000457  1    0.000457
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.050721      0.002573  1    0.002573
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.056331      0.003173  1    0.003173
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.067532      0.004561  1    0.004561
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.122053      0.014897  1    0.014897
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.240100      0.057648  1    0.057648
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.258291      0.066714  1    0.066714
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.626164      0.392081  1    0.392081
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 11    0.719334      0.517441  1    0.517441
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 12    0.722845      0.522505  1    0.522505
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 13    0.822830      0.677049  1    0.677049
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 14    0.997024      0.994057  1    0.994057
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.000524      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.012303      0.000151  1    0.000151
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.022967      0.000527  1    0.000527
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.031733      0.001007  1    0.001007
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.072764      0.005295  1    0.005295
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.125542      0.015761  1    0.015761
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.128665      0.016555  1    0.016555
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.245684      0.060361  1    0.060361
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.262332      0.068818  1    0.068818
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.543822      0.295743  1    0.295743
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 11    0.608932      0.370798  1    0.370798
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 12    0.700966      0.491354  1    0.491354
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 13    0.710867      0.505332  1    0.505332
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 14    0.996691      0.993394  1    0.993394
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.007537      0.000057  1    0.000057
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.016881      0.000285  1    0.000285
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.037233      0.001386  1    0.001386
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.052523      0.002759  1    0.002759
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.057200      0.003272  1    0.003272
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.062041      0.003849  1    0.003849
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.117895      0.013899  1    0.013899
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.238712      0.056983  1    0.056983
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.262257      0.068779  1    0.068779
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.627911      0.394273  1    0.394273
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 11    0.713662      0.509314  1    0.509314
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 12    0.724295      0.524603  1    0.524603
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 13    0.825478      0.681414  1    0.681414
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 14    0.996916      0.993842  1    0.993842
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.014221      0.000202  1    0.000202
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.031993      0.001024  1    0.001024
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.126216      0.015931  1    0.015931
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.126970      0.016121  1    0.016121
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.145811      0.021261  1    0.021261
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.152814      0.023352  1    0.023352
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.236046      0.055718  1    0.055718
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.298595      0.089159  1    0.089159
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.345488      0.119362  1    0.119362
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.550742      0.303317  1    0.303317
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 11    0.574646      0.330218  1    0.330218
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 12    0.646475      0.417930  1    0.417930
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 13    0.696412      0.484990  1    0.484990
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 14    0.995361      0.990743  1    0.990743
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.005880      0.000035  1    0.000035
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.017029      0.000290  1    0.000290
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.034174      0.001168  1    0.001168
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.052821      0.002790  1    0.002790
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.056603      0.003204  1    0.003204
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.062936      0.003961  1    0.003961
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.114873      0.013196  1    0.013196
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.237821      0.056559  1    0.056559
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.256367      0.065724  1    0.065724
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.628287      0.394744  1    0.394744
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 11    0.714854      0.511016  1    0.511016
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 12    0.724362      0.524700  1    0.524700
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 13    0.827591      0.684907  1    0.684907
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 14    0.996926      0.993861  1    0.993861
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.000393      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.012116      0.000147  1    0.000147
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.022794      0.000520  1    0.000520
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.031954      0.001021  1    0.001021
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.072086      0.005196  1    0.005196
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.125967      0.015868  1    0.015868
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.128989      0.016638  1    0.016638
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.245146      0.060097  1    0.060097
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.262726      0.069025  1    0.069025
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.544289      0.296250  1    0.296250
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 11    0.608750      0.370577  1    0.370577
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 12    0.700645      0.490903  1    0.490903
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 13    0.710984      0.505499  1    0.505499
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 14    0.996696      0.993402  1    0.993402
+ No. of spherical basis fns is           14 for atom kind           2 atom nameO                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.001488      0.000002  1    0.000002
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.002688      0.000007  1    0.000007
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.008894      0.000079  1    0.000079
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.009511      0.000090  1    0.000090
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.012448      0.000155  1    0.000155
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.018125      0.000329  1    0.000329
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.067875      0.004607  1    0.004607
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.102923      0.010593  1    0.010593
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.171759      0.029501  1    0.029501
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.776768      0.603369  1    0.603369
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 11    0.944633      0.892331  1    0.892331
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 12    0.966909      0.934913  1    0.934913
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 13    0.970070      0.941036  1    0.941036
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 14    0.999979      0.999958  1    0.999958
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.026027      0.000677  1    0.000677
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.067715      0.004585  1    0.004585
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.093903      0.008818  1    0.008818
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.138914      0.019297  1    0.019297
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.650772      0.423505  1    0.423505
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.026943      0.000726  1    0.000726
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.043389      0.001883  1    0.001883
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.063912      0.004085  1    0.004085
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.137530      0.018915  1    0.018915
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.666088      0.443673  1    0.443673
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.031624      0.001000  1    0.001000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.067345      0.004535  1    0.004535
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.094030      0.008842  1    0.008842
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.139073      0.019341  1    0.019341
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.646964      0.418563  1    0.418563
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.030479      0.000929  1    0.000929
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.067037      0.004494  1    0.004494
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.093794      0.008797  1    0.008797
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.137804      0.018990  1    0.018990
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.647122      0.418766  1    0.418766
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.026692      0.000712  1    0.000712
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.043472      0.001890  1    0.001890
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.063684      0.004056  1    0.004056
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.137351      0.018865  1    0.018865
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.665843      0.443347  1    0.443347
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.012397      0.000154  1    0.000154
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.021352      0.000456  1    0.000456
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.022932      0.000526  1    0.000526
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.070762      0.005007  1    0.005007
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.124579      0.015520  1    0.015520
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.126001      0.015876  1    0.015876
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.244383      0.059723  1    0.059723
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.260663      0.067945  1    0.067945
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.517702      0.268015  1    0.268015
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 11    0.608695      0.370510  1    0.370510
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 12    0.702534      0.493554  1    0.493554
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 13    0.711363      0.506037  1    0.506037
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 14    0.996708      0.993427  1    0.993427
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.012317      0.000152  1    0.000152
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.023106      0.000534  1    0.000534
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.039521      0.001562  1    0.001562
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.051914      0.002695  1    0.002695
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.069880      0.004883  1    0.004883
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.121433      0.014746  1    0.014746
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.241907      0.058519  1    0.058519
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.259495      0.067337  1    0.067337
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.625968      0.391836  1    0.391836
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 11    0.718066      0.515618  1    0.515618
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 12    0.722006      0.521293  1    0.521293
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 13    0.817093      0.667641  1    0.667641
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 14    0.996996      0.994001  1    0.994001
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.000010      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.017731      0.000314  1    0.000314
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.029902      0.000894  1    0.000894
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.039178      0.001535  1    0.001535
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.065748      0.004323  1    0.004323
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.120856      0.014606  1    0.014606
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.123486      0.015249  1    0.015249
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.243193      0.059143  1    0.059143
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.267652      0.071638  1    0.071638
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.510986      0.261107  1    0.261107
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 11    0.611528      0.373966  1    0.373966
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 12    0.696541      0.485170  1    0.485170
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 13    0.712920      0.508255  1    0.508255
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 14    0.996582      0.993175  1    0.993175
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.014044      0.000197  1    0.000197
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.056926      0.003241  1    0.003241
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.057349      0.003289  1    0.003289
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.120394      0.014495  1    0.014495
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.153402      0.023532  1    0.023532
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.232117      0.053878  1    0.053878
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.298070      0.088846  1    0.088846
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.348585      0.121512  1    0.121512
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.596102      0.355338  1    0.355338
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 11    0.666094      0.443681  1    0.443681
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 12    0.712456      0.507594  1    0.507594
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 13    0.788170      0.621213  1    0.621213
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 14    0.995833      0.991683  1    0.991683
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.017890      0.000320  1    0.000320
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.030202      0.000912  1    0.000912
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.035851      0.001285  1    0.001285
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.066790      0.004461  1    0.004461
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.120219      0.014453  1    0.014453
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.120774      0.014586  1    0.014586
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.242462      0.058788  1    0.058788
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.261468      0.068366  1    0.068366
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.510317      0.260423  1    0.260423
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 11    0.611701      0.374179  1    0.374179
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 12    0.697871      0.487023  1    0.487023
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 13    0.712680      0.507912  1    0.507912
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 14    0.996588      0.993188  1    0.993188
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.012133      0.000147  1    0.000147
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.022924      0.000526  1    0.000526
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.039325      0.001546  1    0.001546
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.051793      0.002683  1    0.002683
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.069157      0.004783  1    0.004783
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.121862      0.014850  1    0.014850
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.241304      0.058228  1    0.058228
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.259896      0.067546  1    0.067546
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.625827      0.391659  1    0.391659
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 11    0.717878      0.515349  1    0.515349
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 12    0.722064      0.521376  1    0.521376
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 13    0.816716      0.667025  1    0.667025
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 14    0.996999      0.994007  1    0.994007
+ No. of spherical basis fns is           14 for atom kind           2 atom nameO                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.002657      0.000007  1    0.000007
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.002664      0.000007  1    0.000007
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.009134      0.000083  1    0.000083
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.009681      0.000094  1    0.000094
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.012665      0.000160  1    0.000160
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.018225      0.000332  1    0.000332
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.106513      0.011345  1    0.011345
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.172802      0.029860  1    0.029860
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.413226      0.170756  1    0.170756
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 11    0.751795      0.565195  1    0.565195
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 12    0.942898      0.889056  1    0.889056
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 13    0.967855      0.936744  1    0.936744
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 14    0.999973      0.999946  1    0.999946
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.026477      0.000701  1    0.000701
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.039455      0.001557  1    0.001557
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.063831      0.004074  1    0.004074
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.136382      0.018600  1    0.018600
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.666457      0.444165  1    0.444165
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.026881      0.000723  1    0.000723
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.068027      0.004628  1    0.004628
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.092611      0.008577  1    0.008577
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.139798      0.019543  1    0.019543
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.651742      0.424768  1    0.424768
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.032880      0.001081  1    0.001081
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.039568      0.001566  1    0.001566
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.063315      0.004009  1    0.004009
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.137126      0.018804  1    0.018804
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.663023      0.439600  1    0.439600
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.031648      0.001002  1    0.001002
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.039246      0.001540  1    0.001540
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.063074      0.003978  1    0.003978
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.135694      0.018413  1    0.018413
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.663466      0.440188  1    0.440188
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.026583      0.000707  1    0.000707
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.067824      0.004600  1    0.004600
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.092548      0.008565  1    0.008565
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.139650      0.019502  1    0.019502
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.651510      0.424466  1    0.424466
+   MOA for Atoms
+   -------------
+          ATOM            NUC       POP         CHRG          SPIN
+      ----------------------------------------------------
+        1       C         6      6.05005     -0.05005      0.45655
+        2       C         6      6.06591     -0.06591     -0.41572
+        3       C         6      6.04409     -0.04409      0.46534
+        4       C         6      6.09783     -0.09783     -0.35917
+        5       C         6      6.04205     -0.04205      0.47026
+        6       C         6      6.06487     -0.06487     -0.41458
+        7       O         8      8.02056     -0.02056      0.81338
+        8       H         1      0.92598      0.07402     -0.01222
+        9       H         1      0.92752      0.07248      0.01104
+       10       H         1      0.91734      0.08266     -0.01278
+       11       H         1      0.91710      0.08290     -0.01314
+       12       H         1      0.92671      0.07329      0.01103
+ -------
+ Entered MOA fragment analysis section
+ nfrg, lfrg            2           1
+ -----------------------------------------------
+             MOA Fragment analysis           
+ -----------------------------------------------
+ Atoms in fragement,            1  are:            7
+ Total nuclear charge on fragement,            1  is:            8
+ Total nuclear charge on rest of the system is:           41
+ Basis functions in the fragment or not, for frag. #           1 F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F T T T T T T T T T T T T T T F F F F F F F F F F F F F F F F F F F F F F F F F
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+ No. of spherical basis fns is           14 for atom kind           2 atom nameO                                                                               
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+ IAT, JAT =            1           1 F F
+ IAT, JAT =            1           2 F F
+ IAT, JAT =            1           3 F F
+ IAT, JAT =            1           4 F F
+ IAT, JAT =            1           5 F F
+ IAT, JAT =            1           6 F F
+ IAT, JAT =            1           7 F T
+ IAT, JAT =            1           8 F F
+ IAT, JAT =            1           9 F F
+ IAT, JAT =            1          10 F F
+ IAT, JAT =            1          11 F F
+ IAT, JAT =            1          12 F F
+ IAT, JAT =            2           1 F F
+ IAT, JAT =            2           2 F F
+ IAT, JAT =            2           3 F F
+ IAT, JAT =            2           4 F F
+ IAT, JAT =            2           5 F F
+ IAT, JAT =            2           6 F F
+ IAT, JAT =            2           7 F T
+ IAT, JAT =            2           8 F F
+ IAT, JAT =            2           9 F F
+ IAT, JAT =            2          10 F F
+ IAT, JAT =            2          11 F F
+ IAT, JAT =            2          12 F F
+ IAT, JAT =            3           1 F F
+ IAT, JAT =            3           2 F F
+ IAT, JAT =            3           3 F F
+ IAT, JAT =            3           4 F F
+ IAT, JAT =            3           5 F F
+ IAT, JAT =            3           6 F F
+ IAT, JAT =            3           7 F T
+ IAT, JAT =            3           8 F F
+ IAT, JAT =            3           9 F F
+ IAT, JAT =            3          10 F F
+ IAT, JAT =            3          11 F F
+ IAT, JAT =            3          12 F F
+ IAT, JAT =            4           1 F F
+ IAT, JAT =            4           2 F F
+ IAT, JAT =            4           3 F F
+ IAT, JAT =            4           4 F F
+ IAT, JAT =            4           5 F F
+ IAT, JAT =            4           6 F F
+ IAT, JAT =            4           7 F T
+ IAT, JAT =            4           8 F F
+ IAT, JAT =            4           9 F F
+ IAT, JAT =            4          10 F F
+ IAT, JAT =            4          11 F F
+ IAT, JAT =            4          12 F F
+ IAT, JAT =            5           1 F F
+ IAT, JAT =            5           2 F F
+ IAT, JAT =            5           3 F F
+ IAT, JAT =            5           4 F F
+ IAT, JAT =            5           5 F F
+ IAT, JAT =            5           6 F F
+ IAT, JAT =            5           7 F T
+ IAT, JAT =            5           8 F F
+ IAT, JAT =            5           9 F F
+ IAT, JAT =            5          10 F F
+ IAT, JAT =            5          11 F F
+ IAT, JAT =            5          12 F F
+ IAT, JAT =            6           1 F F
+ IAT, JAT =            6           2 F F
+ IAT, JAT =            6           3 F F
+ IAT, JAT =            6           4 F F
+ IAT, JAT =            6           5 F F
+ IAT, JAT =            6           6 F F
+ IAT, JAT =            6           7 F T
+ IAT, JAT =            6           8 F F
+ IAT, JAT =            6           9 F F
+ IAT, JAT =            6          10 F F
+ IAT, JAT =            6          11 F F
+ IAT, JAT =            6          12 F F
+ IAT, JAT =            7           1 T F
+ IAT, JAT =            7           2 T F
+ IAT, JAT =            7           3 T F
+ IAT, JAT =            7           4 T F
+ IAT, JAT =            7           5 T F
+ IAT, JAT =            7           6 T F
+ IAT, JAT =            7           7 T T
+ IAT, JAT =            7           8 T F
+ IAT, JAT =            7           9 T F
+ IAT, JAT =            7          10 T F
+ IAT, JAT =            7          11 T F
+ IAT, JAT =            7          12 T F
+ IAT, JAT =            8           1 F F
+ IAT, JAT =            8           2 F F
+ IAT, JAT =            8           3 F F
+ IAT, JAT =            8           4 F F
+ IAT, JAT =            8           5 F F
+ IAT, JAT =            8           6 F F
+ IAT, JAT =            8           7 F T
+ IAT, JAT =            8           8 F F
+ IAT, JAT =            8           9 F F
+ IAT, JAT =            8          10 F F
+ IAT, JAT =            8          11 F F
+ IAT, JAT =            8          12 F F
+ IAT, JAT =            9           1 F F
+ IAT, JAT =            9           2 F F
+ IAT, JAT =            9           3 F F
+ IAT, JAT =            9           4 F F
+ IAT, JAT =            9           5 F F
+ IAT, JAT =            9           6 F F
+ IAT, JAT =            9           7 F T
+ IAT, JAT =            9           8 F F
+ IAT, JAT =            9           9 F F
+ IAT, JAT =            9          10 F F
+ IAT, JAT =            9          11 F F
+ IAT, JAT =            9          12 F F
+ IAT, JAT =           10           1 F F
+ IAT, JAT =           10           2 F F
+ IAT, JAT =           10           3 F F
+ IAT, JAT =           10           4 F F
+ IAT, JAT =           10           5 F F
+ IAT, JAT =           10           6 F F
+ IAT, JAT =           10           7 F T
+ IAT, JAT =           10           8 F F
+ IAT, JAT =           10           9 F F
+ IAT, JAT =           10          10 F F
+ IAT, JAT =           10          11 F F
+ IAT, JAT =           10          12 F F
+ IAT, JAT =           11           1 F F
+ IAT, JAT =           11           2 F F
+ IAT, JAT =           11           3 F F
+ IAT, JAT =           11           4 F F
+ IAT, JAT =           11           5 F F
+ IAT, JAT =           11           6 F F
+ IAT, JAT =           11           7 F T
+ IAT, JAT =           11           8 F F
+ IAT, JAT =           11           9 F F
+ IAT, JAT =           11          10 F F
+ IAT, JAT =           11          11 F F
+ IAT, JAT =           11          12 F F
+ IAT, JAT =           12           1 F F
+ IAT, JAT =           12           2 F F
+ IAT, JAT =           12           3 F F
+ IAT, JAT =           12           4 F F
+ IAT, JAT =           12           5 F F
+ IAT, JAT =           12           6 F F
+ IAT, JAT =           12           7 F T
+ IAT, JAT =           12           8 F F
+ IAT, JAT =           12           9 F F
+ IAT, JAT =           12          10 F F
+ IAT, JAT =           12          11 F F
+ IAT, JAT =           12          12 F F
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           1
+  -------------------------------
+ ---------------------
+ alpha electrons
+ ---------------------
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           1
+  -------------------------------
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.000390      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.001488      0.000002  1    0.000002
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.002757      0.000008  1    0.000008
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.007543      0.000057  1    0.000057
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.008894      0.000079  1    0.000079
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.012311      0.000152  1    0.000152
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.017786      0.000316  1    0.000316
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.067875      0.004607  1    0.004607
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.102680      0.010543  1    0.010543
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.155178      0.024080  1    0.024080
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 11    0.777244      0.604107  1    0.604107
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 12    0.946278      0.895441  1    0.895441
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 13    0.966909      0.934913  1    0.934913
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 14    0.970054      0.941004  1    0.941004
+                                                                                      --------
+                                                      -moa- population on fragment    3.415310
+ nbf value is           14
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           1
+  -------------------------------
+ ---------------------
+ beta electrons
+ ---------------------
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           1
+  -------------------------------
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.000409      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.002657      0.000007  1    0.000007
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.002662      0.000007  1    0.000007
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.008056      0.000065  1    0.000065
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.009134      0.000083  1    0.000083
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.012354      0.000153  1    0.000153
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.017901      0.000320  1    0.000320
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.106300      0.011300  1    0.011300
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.157068      0.024670  1    0.024670
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 11    0.413226      0.170756  1    0.170756
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 12    0.751908      0.565366  1    0.565366
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 13    0.944625      0.892317  1    0.892317
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 14    0.967839      0.936712  1    0.936712
+                                                                                      --------
+                                                      -moa- population on fragment    2.601756
+ nbf value is           14
+ nfrg, lfrg            2           6
+ -----------------------------------------------
+             MOA Fragment analysis           
+ -----------------------------------------------
+ Atoms in fragement,            2  are:            1           2           3           4           5           6
+ Total nuclear charge on fragement,            2  is:           36
+ Total nuclear charge on rest of the system is:           13
+ Basis functions in the fragment or not, for frag. #           2 T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F F
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+ No. of spherical basis fns is           14 for atom kind           1 atom nameC                                                                               
+ No. of spherical basis fns is           14 for atom kind           2 atom nameO                                                                               
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+ No. of spherical basis fns is            5 for atom kind           3 atom nameH                                                                               
+ IAT, JAT =            1           1 T T
+ IAT, JAT =            1           2 T T
+ IAT, JAT =            1           3 T T
+ IAT, JAT =            1           4 T T
+ IAT, JAT =            1           5 T T
+ IAT, JAT =            1           6 T T
+ IAT, JAT =            1           7 T F
+ IAT, JAT =            1           8 T F
+ IAT, JAT =            1           9 T F
+ IAT, JAT =            1          10 T F
+ IAT, JAT =            1          11 T F
+ IAT, JAT =            1          12 T F
+ IAT, JAT =            2           1 T T
+ IAT, JAT =            2           2 T T
+ IAT, JAT =            2           3 T T
+ IAT, JAT =            2           4 T T
+ IAT, JAT =            2           5 T T
+ IAT, JAT =            2           6 T T
+ IAT, JAT =            2           7 T F
+ IAT, JAT =            2           8 T F
+ IAT, JAT =            2           9 T F
+ IAT, JAT =            2          10 T F
+ IAT, JAT =            2          11 T F
+ IAT, JAT =            2          12 T F
+ IAT, JAT =            3           1 T T
+ IAT, JAT =            3           2 T T
+ IAT, JAT =            3           3 T T
+ IAT, JAT =            3           4 T T
+ IAT, JAT =            3           5 T T
+ IAT, JAT =            3           6 T T
+ IAT, JAT =            3           7 T F
+ IAT, JAT =            3           8 T F
+ IAT, JAT =            3           9 T F
+ IAT, JAT =            3          10 T F
+ IAT, JAT =            3          11 T F
+ IAT, JAT =            3          12 T F
+ IAT, JAT =            4           1 T T
+ IAT, JAT =            4           2 T T
+ IAT, JAT =            4           3 T T
+ IAT, JAT =            4           4 T T
+ IAT, JAT =            4           5 T T
+ IAT, JAT =            4           6 T T
+ IAT, JAT =            4           7 T F
+ IAT, JAT =            4           8 T F
+ IAT, JAT =            4           9 T F
+ IAT, JAT =            4          10 T F
+ IAT, JAT =            4          11 T F
+ IAT, JAT =            4          12 T F
+ IAT, JAT =            5           1 T T
+ IAT, JAT =            5           2 T T
+ IAT, JAT =            5           3 T T
+ IAT, JAT =            5           4 T T
+ IAT, JAT =            5           5 T T
+ IAT, JAT =            5           6 T T
+ IAT, JAT =            5           7 T F
+ IAT, JAT =            5           8 T F
+ IAT, JAT =            5           9 T F
+ IAT, JAT =            5          10 T F
+ IAT, JAT =            5          11 T F
+ IAT, JAT =            5          12 T F
+ IAT, JAT =            6           1 T T
+ IAT, JAT =            6           2 T T
+ IAT, JAT =            6           3 T T
+ IAT, JAT =            6           4 T T
+ IAT, JAT =            6           5 T T
+ IAT, JAT =            6           6 T T
+ IAT, JAT =            6           7 T F
+ IAT, JAT =            6           8 T F
+ IAT, JAT =            6           9 T F
+ IAT, JAT =            6          10 T F
+ IAT, JAT =            6          11 T F
+ IAT, JAT =            6          12 T F
+ IAT, JAT =            7           1 F T
+ IAT, JAT =            7           2 F T
+ IAT, JAT =            7           3 F T
+ IAT, JAT =            7           4 F T
+ IAT, JAT =            7           5 F T
+ IAT, JAT =            7           6 F T
+ IAT, JAT =            7           7 F F
+ IAT, JAT =            7           8 F F
+ IAT, JAT =            7           9 F F
+ IAT, JAT =            7          10 F F
+ IAT, JAT =            7          11 F F
+ IAT, JAT =            7          12 F F
+ IAT, JAT =            8           1 F T
+ IAT, JAT =            8           2 F T
+ IAT, JAT =            8           3 F T
+ IAT, JAT =            8           4 F T
+ IAT, JAT =            8           5 F T
+ IAT, JAT =            8           6 F T
+ IAT, JAT =            8           7 F F
+ IAT, JAT =            8           8 F F
+ IAT, JAT =            8           9 F F
+ IAT, JAT =            8          10 F F
+ IAT, JAT =            8          11 F F
+ IAT, JAT =            8          12 F F
+ IAT, JAT =            9           1 F T
+ IAT, JAT =            9           2 F T
+ IAT, JAT =            9           3 F T
+ IAT, JAT =            9           4 F T
+ IAT, JAT =            9           5 F T
+ IAT, JAT =            9           6 F T
+ IAT, JAT =            9           7 F F
+ IAT, JAT =            9           8 F F
+ IAT, JAT =            9           9 F F
+ IAT, JAT =            9          10 F F
+ IAT, JAT =            9          11 F F
+ IAT, JAT =            9          12 F F
+ IAT, JAT =           10           1 F T
+ IAT, JAT =           10           2 F T
+ IAT, JAT =           10           3 F T
+ IAT, JAT =           10           4 F T
+ IAT, JAT =           10           5 F T
+ IAT, JAT =           10           6 F T
+ IAT, JAT =           10           7 F F
+ IAT, JAT =           10           8 F F
+ IAT, JAT =           10           9 F F
+ IAT, JAT =           10          10 F F
+ IAT, JAT =           10          11 F F
+ IAT, JAT =           10          12 F F
+ IAT, JAT =           11           1 F T
+ IAT, JAT =           11           2 F T
+ IAT, JAT =           11           3 F T
+ IAT, JAT =           11           4 F T
+ IAT, JAT =           11           5 F T
+ IAT, JAT =           11           6 F T
+ IAT, JAT =           11           7 F F
+ IAT, JAT =           11           8 F F
+ IAT, JAT =           11           9 F F
+ IAT, JAT =           11          10 F F
+ IAT, JAT =           11          11 F F
+ IAT, JAT =           11          12 F F
+ IAT, JAT =           12           1 F T
+ IAT, JAT =           12           2 F T
+ IAT, JAT =           12           3 F T
+ IAT, JAT =           12           4 F T
+ IAT, JAT =           12           5 F T
+ IAT, JAT =           12           6 F T
+ IAT, JAT =           12           7 F F
+ IAT, JAT =           12           8 F F
+ IAT, JAT =           12           9 F F
+ IAT, JAT =           12          10 F F
+ IAT, JAT =           12          11 F F
+ IAT, JAT =           12          12 F F
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           2
+  -------------------------------
+ ---------------------
+ alpha electrons
+ ---------------------
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           2
+  -------------------------------
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 11    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 12    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 13    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 14    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 15    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 16    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 17    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 18    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 19    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 20    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 21    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 22    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 23    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 24    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 25    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 26    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 27    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 28    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 29    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 30    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 31    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 32    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 33    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 34    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 35    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 36    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 37    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 38    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 39    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 40    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 41    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 42    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 43    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 44    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 45    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 46    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 47    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 48    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 49    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 50    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 51    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 52    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 53    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 54    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 55    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 56    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 57    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 58    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 59    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 60    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 61    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 62    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 63    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 64    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 65    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 66    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 67    0.288273      0.083101  1    0.083101
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 68    0.379413      0.143954  1    0.143954
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 69    0.396796      0.157447  1    0.157447
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 70    0.620857      0.385463  1    0.385463
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 71    0.729666      0.532412  1    0.532412
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 72    0.732654      0.536782  1    0.536782
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 73    0.745412      0.555639  1    0.555639
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 74    0.747526      0.558795  1    0.558795
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 75    0.763232      0.582522  1    0.582522
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 76    0.973373      0.947455  1    0.947455
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 77    0.980174      0.960742  1    0.960742
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 78    0.980252      0.960894  1    0.960894
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 79    0.983260      0.966801  1    0.966801
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 80    0.984091      0.968434  1    0.968434
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 81    0.991313      0.982701  1    0.982701
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 82    0.992006      0.984075  1    0.984075
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 83    0.993612      0.987265  1    0.987265
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 84    0.994861      0.989748  1    0.989748
+                                                                                      --------
+                                                      -moa- population on fragment   12.284233
+ nbf value is           84
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           2
+  -------------------------------
+ ---------------------
+ beta electrons
+ ---------------------
+  ----- now ... the analysis -----
+  -MOA- analysis for -fragment- =           2
+  -------------------------------
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  1    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  2    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  3    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  4    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  5    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  6    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  7    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  8    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ.  9    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 10    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 11    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 12    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 13    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 14    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 15    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 16    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 17    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 18    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 19    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 20    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 21    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 22    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 23    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 24    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 25    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 26    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 27    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 28    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 29    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 30    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 31    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 32    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 33    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 34    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 35    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 36    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 37    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 38    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 39    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 40    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 41    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 42    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 43    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 44    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 45    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 46    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 47    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 48    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 49    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 50    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 51    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 52    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 53    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 54    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 55    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 56    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 57    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 58    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 59    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 60    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 61    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 62    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 63    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 64    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 65    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 66    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 67    0.000000      0.000000  1    0.000000
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 68    0.387004      0.149772  1    0.149772
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 69    0.401855      0.161487  1    0.161487
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 70    0.647176      0.418837  1    0.418837
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 71    0.730372      0.533443  1    0.533443
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 72    0.730839      0.534126  1    0.534126
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 73    0.737793      0.544339  1    0.544339
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 74    0.745217      0.555348  1    0.555348
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 75    0.760351      0.578134  1    0.578134
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 76    0.908735      0.825799  1    0.825799
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 77    0.973750      0.948188  1    0.948188
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 78    0.980214      0.960819  1    0.960819
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 79    0.980275      0.960939  1    0.960939
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 80    0.983352      0.966981  1    0.966981
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 81    0.984301      0.968849  1    0.968849
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 82    0.992031      0.984126  1    0.984126
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 83    0.993594      0.987228  1    0.987228
+    -moa- orb. -i- , max. ovlp., occ. number, occ. 84    0.994988      0.990001  1    0.990001
+                                                                                      --------
+                                                      -moa- population on fragment   12.068416
+ nbf value is           84
+   MOA for Fragments
+   -------------
+  FRAG   POP         CHRG          SPIN
+      ----------------------------------------------------
+    1      6.01707      1.98293      0.81355
+    2     24.35265     11.64735      0.21582
+ ..... END of MOA analysis for Fragments .....
+  
+ ..... END of MOA analysis .....
+
+ ENERGY| Total FORCE_EVAL ( QS ) energy (a.u.):             -304.972353658104794
+
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                                DBCSR STATISTICS                             -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+ COUNTER                                    TOTAL       BLAS       SMM       ACC
+ flops     5 x    25 x     5                31250     100.0%      0.0%      0.0%
+ flops     5 x     5 x    24                36000     100.0%      0.0%      0.0%
+ flops     5 x     5 x    25                37500     100.0%      0.0%      0.0%
+ flops     5 x    24 x     5                60000     100.0%      0.0%      0.0%
+ flops    14 x     5 x    24               114240     100.0%      0.0%      0.0%
+ flops    14 x     5 x    25               119000     100.0%      0.0%      0.0%
+ flops     5 x    14 x    24               120960     100.0%      0.0%      0.0%
+ flops    14 x    25 x     5               122500     100.0%      0.0%      0.0%
+ flops     5 x    25 x    14               122500     100.0%      0.0%      0.0%
+ flops     5 x    14 x    25               126000     100.0%      0.0%      0.0%
+ flops    14 x    24 x     5               235200     100.0%      0.0%      0.0%
+ flops     5 x    24 x    14               235200     100.0%      0.0%      0.0%
+ flops    14 x    25 x    14               480200     100.0%      0.0%      0.0%
+ flops    14 x    14 x    24               526848     100.0%      0.0%      0.0%
+ flops    14 x    14 x    25               548800     100.0%      0.0%      0.0%
+ flops    14 x    24 x    14               921984     100.0%      0.0%      0.0%
+ flops inhomo. stacks                           0       0.0%      0.0%      0.0%
+ flops total                         3.838182E+06     100.0%      0.0%      0.0%
+ flops max/rank                    696.886000E+03     100.0%      0.0%      0.0%
+ matmuls inhomo. stacks                         0       0.0%      0.0%      0.0%
+ matmuls total                                744     100.0%      0.0%      0.0%
+ number of processed stacks                   315     100.0%      0.0%      0.0%
+ average stack size                                     2.4       0.0       0.0
+ marketing flops                     5.174118E+06
+ -------------------------------------------------------------------------------
+ # multiplications                              7
+ max memory usage/rank             441.638912E+06
+ # max total images/rank                        1
+ # max 3D layers                                1
+ # MPI messages exchanged                     672
+ MPI messages size (bytes):
+  total size                         1.883376E+06
+  min size                           0.000000E+00
+  max size                           8.712000E+03
+  average size                       2.802643E+03
+ MPI breakdown and total messages size (bytes):
+             size <=      128                 396                        0
+       128 < size <=     8192                 240                  1569744
+      8192 < size <=    32768                  36                   313632
+     32768 < size <=   131072                   0                        0
+    131072 < size <=  4194304                   0                        0
+   4194304 < size <= 16777216                   0                        0
+  16777216 < size                               0                        0
+ -------------------------------------------------------------------------------
+
+ MEMORY| Estimated peak process memory [MiB]                                 437
+
+ -------------------------------------------------------------------------------
+ ----                             MULTIGRID INFO                            ----
+ -------------------------------------------------------------------------------
+ count for grid        1:          96089          cutoff [a.u.]          300.00
+ count for grid        2:          19752          cutoff [a.u.]           75.00
+ count for grid        3:           6094          cutoff [a.u.]           18.75
+ count for grid        4:              0          cutoff [a.u.]            4.69
+ count for grid        5:              0          cutoff [a.u.]            1.17
+ total gridlevel count  :         121935
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                         MESSAGE PASSING PERFORMANCE                         -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+
+ ROUTINE             CALLS      AVE VOLUME [Bytes]
+ MP_Group               15
+ MP_Bcast              178                  29770.
+ MP_Allreduce          466                   7405.
+ MP_Sync            172820
+ MP_Alltoall           326                7527131.
+ MP_ISendRecv         1170                 243363.
+ MP_Wait              2035
+ MP_comm_split           2
+ MP_ISend              572                1265187.
+ MP_IRecv              572                1265112.
+ MP_Recv            161286                   1920.
+ MP_Memory             272
+ -------------------------------------------------------------------------------
+
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                           R E F E R E N C E S                               -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+ 
+ CP2K version 6.1, the CP2K developers group (2018).
+ CP2K is freely available from https://www.cp2k.org/ .
+
+ Schuett, Ole; Messmer, Peter; Hutter, Juerg; VandeVondele, Joost. 
+ Electronic Structure Calculations on Graphics Processing Units, John Wiley & Sons, Ltd, 173-190 (2016). 
+ GPU-Accelerated Sparse Matrix-Matrix Multiplication for Linear Scaling Density Functional Theory.
+ http://dx.doi.org/10.1002/9781118670712.ch8
+
+
+ Borstnik, U; VandeVondele, J; Weber, V; Hutter, J. 
+ PARALLEL COMPUTING, 40 (5-6), 47-58 (2014). 
+ Sparse matrix multiplication: The distributed block-compressed sparse
+ row library.
+ http://dx.doi.org/10.1016/j.parco.2014.03.012
+
+
+ Hutter, J; Iannuzzi, M; Schiffmann, F; VandeVondele, J. 
+ WILEY INTERDISCIPLINARY REVIEWS-COMPUTATIONAL MOLECULAR SCIENCE, 4 (1), 15-25 (2014). 
+ CP2K: atomistic simulations of condensed matter systems.
+ http://dx.doi.org/10.1002/wcms.1159
+
+
+ Guidon, M; Hutter, J; VandeVondele, J. 
+ JOURNAL OF CHEMICAL THEORY AND COMPUTATION, 5 (11), 3010-3021 (2009). 
+ Robust Periodic Hartree-Fock Exchange for Large-Scale Simulations Using
+ Gaussian Basis Sets.
+ http://dx.doi.org/10.1021/ct900494g
+
+
+ Guidon, M; Schiffmann, F; Hutter, J; VandeVondele, J. 
+ JOURNAL OF CHEMICAL PHYSICS, 128 (21), 214104 (2008). 
+ Ab initio molecular dynamics using hybrid density functionals.
+ http://dx.doi.org/10.1063/1.2931945
+
+
+ Genovese, L; Deutsch, T; Goedecker, S. 
+ JOURNAL OF CHEMICAL PHYSICS, 127 (5), 054704 (2007). 
+ Efficient and accurate three-dimensional Poisson solver for surface
+ problems.
+ http://dx.doi.org/10.1063/1.2754685
+
+
+ Genovese, L; Deutsch, T; Neelov, A; Goedecker, S; Beylkin, G. 
+ JOURNAL OF CHEMICAL PHYSICS, 125 (7), 074105 (2006). 
+ Efficient solution of Poisson's equation with free boundary conditions.
+ http://dx.doi.org/10.1063/1.2335442
+
+
+ Lippert, G; Hutter, J; Parrinello, M. 
+ THEORETICAL CHEMISTRY ACCOUNTS, 103 (2), 124-140 (1999). 
+ The Gaussian and augmented-plane-wave density functional method for ab
+ initio molecular dynamics simulations.
+ http://dx.doi.org/10.1007/s002140050523
+
+
+ Krack, M; Parrinello, M. 
+ PHYSICAL CHEMISTRY CHEMICAL PHYSICS, 2 (10), 2105-2112 (2000). 
+ All-electron ab-initio molecular dynamics.
+ http://dx.doi.org/10.1039/b001167n
+
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                                T I M I N G                                  -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+ SUBROUTINE                       CALLS  ASD         SELF TIME        TOTAL TIME
+                                MAXIMUM       AVERAGE  MAXIMUM  AVERAGE  MAXIMUM
+ CP2K                                 1  1.0    0.092    0.095   37.949   37.950
+ qs_energies                          1  2.0    0.004    0.004   36.981   37.172
+ qs_energies_properties               1  3.0    0.000    0.000   28.470   28.661
+ maximal_orbital_analysis             1  4.0    0.281    0.335   28.470   28.661
+ moax_frg                             2  5.0    0.227    0.263   28.126   28.318
+ orbmoa_frg                           4  6.0    0.220    2.770   27.509   28.038
+ pw_to_cube                          12  7.0    1.272   18.569   19.667   19.784
+ mp_sync                         172820  8.0   17.723   18.902   17.723   18.902
+ calculate_wavefunction              12  7.0    1.643    1.796    7.212    7.396
+ scf_env_do_scf                       1  3.0    0.000    0.000    6.923    6.925
+ scf_env_do_scf_inner_loop            1  4.0    0.000    0.002    6.920    6.922
+ pw_transfer                        111  8.3    0.005    0.006    6.277    6.378
+ fft_wrap_pw1pw2                    110  9.3    0.001    0.001    6.268    6.368
+ fft_wrap_pw1pw2_300                 38 10.3    0.339    0.398    5.972    6.121
+ qs_ks_update_qs_env                  1  5.0    0.000    0.000    5.894    5.896
+ rebuild_ks_matrix                    1  6.0    0.000    0.000    5.894    5.896
+ qs_ks_build_kohn_sham_matrix         1  7.0    0.011    0.013    5.894    5.896
+ fft3d_ps                           110 11.3    3.564    3.697    5.146    5.323
+ rs_pw_transfer                      95  8.3    0.001    0.001    2.429    2.554
+ hfx_ks_matrix                        1  8.0    0.004    0.005    2.435    2.435
+ integrate_four_center                1  9.0    0.001    0.002    2.431    2.433
+ qs_rho_update_rho                    2  5.0    0.000    0.000    2.001    2.001
+ calculate_rho_elec                   4  6.0    0.066    0.129    1.999    1.999
+ density_rs2pw                        4  7.0    0.000    0.000    1.833    1.882
+ pw_poisson_solve                     1  8.0    0.026    0.029    1.808    1.808
+ rs_pw_transfer_RS2PW_300            18  9.1    1.012    1.219    1.566    1.707
+ mp_alltoall_z22v                   110 13.3    0.584    1.190    0.584    1.190
+ init_scf_run                         1  3.0    0.000    0.000    1.190    1.190
+ pw_poisson_rebuild                   1  9.0    0.000    0.000    1.166    1.189
+ ps_wavelet_create                    1 10.0    0.000    0.000    1.166    1.189
+ RS_z_slice_distribution              1 11.0    1.101    1.153    1.166    1.189
+ yz_to_x                             68 12.1    0.465    0.547    0.837    1.067
+ scf_env_initial_rho_setup            1  4.0    0.000    0.000    1.066    1.066
+ powell_optimize                 277969 11.0    1.011    1.041    1.011    1.041
+ mp_sum_i                            17  7.4    0.851    1.020    0.851    1.020
+ mp_waitany                         460 10.3    0.553    0.968    0.553    0.968
+ calc_pair_dist_radii                 1 10.0    0.405    0.425    0.879    0.900
+ x_to_yz                             24 12.8    0.529    0.623    0.741    0.848
+ mp_sum_iv                           66  6.6    0.743    0.794    0.743    0.794
+ calc_screening_functions             1 10.0    0.232    0.238    0.769    0.784
+ -------------------------------------------------------------------------------
+
+ The number of warnings for this run is : 0
+ 
+ -------------------------------------------------------------------------------
+  **** **** ******  **  PROGRAM ENDED AT                 2020-01-29 16:10:54.296
+ ***** ** ***  *** **   PROGRAM RAN ON            cpn-p28-38.cbls.ccr.buffalo.ed
+ **    ****   ******    PROGRAM RAN BY                                  pavankum
+ ***** **    ** ** **   PROGRAM PROCESS ID                                  3098
+  **** **  *******  **  PROGRAM STOPPED IN /projects/academic/mdupuis2/pavan/cp2
+                                           k/cp2k-vab/MOA_CP2K/3.Phenoxy

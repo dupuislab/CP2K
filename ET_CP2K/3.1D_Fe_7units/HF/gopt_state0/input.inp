@@ -1,0 +1,167 @@
+@SET PROJECT  p_fe_
+@SET RESFILE  p_fe_
+@SET RESFILE0 p_0_
+@SET RESFILE1 p_1_
+@SET RESTART 0
+@SET CELL_A 21.385
+@SET CELL_B 35
+@SET CELL_C 35
+@SET RUNTYPE GEO_OPT
+@SET EPSSCF 1E-06
+@SET XYZ elong_geo.xyz
+
+&FORCE_EVAL
+  METHOD QS
+  STRESS_TENSOR NONE
+  &DFT  
+     UKS
+     BASIS_SET_FILE_NAME  /projects/academic/mdupuis2/pavan/BASIS_SETS/GTH_BASIS_SETS_5-12-10
+     POTENTIAL_FILE_NAME  /projects/academic/mdupuis2/pavan/POTENTIALS/GTH_POTENTIALS_5-12-10
+     WFN_RESTART_FILE_NAME ./p_fe_-RESTART.wfn
+     CHARGE 6
+     MULTIPLICITY 35
+    &MGRID
+      CUTOFF 500
+      NGRIDS   5
+      REL_CUTOFF   60
+    &END MGRID
+    &QS
+       EPS_DEFAULT 1.0E-12
+       METHOD GPW
+       MAP_CONSISTENT
+       EXTRAPOLATION ASPC
+       EPS_PGF_ORB 1E-10
+    &END QS
+     &SCF
+       MAX_SCF    1000 
+       EPS_SCF    ${EPSSCF}
+       SCF_GUESS  ATOMIC
+       &OT
+       &END
+       &OUTER_SCF
+         MAX_SCF 500
+         EPS_SCF ${EPSSCF}
+       &END
+       &PRINT
+         &RESTART
+           &EACH
+               JUST_ENERGY 1
+           &END
+           ADD_LAST NUMERIC
+         &END
+       &END
+     &END SCF
+     &XC
+        &XC_FUNCTIONAL NONE
+        &END XC_FUNCTIONAL
+        &HF
+        &INTERACTION_POTENTIAL
+                POTENTIAL_TYPE TRUNCATED
+                CUTOFF_RADIUS [angstrom]  10.6711
+                T_C_G_DATA ./t_c_g.dat
+        &END
+        &MEMORY
+            MAX_MEMORY 5000
+        &END
+
+        &END
+     &END XC
+   &PRINT
+    &MULLIKEN ON
+    &END
+    &LOWDIN OFF
+    &END
+    &XRAY_DIFFRACTION_SPECTRUM OFF
+    &END
+    &PDOS OFF
+      FILENAME PDOS-TMAA
+      NLUMO -1
+    &END PDOS
+    &E_DENSITY_CUBE OFF
+    &END
+    &MO_CUBES                 ! Controls which MOs are written to cube-files.
+      WRITE_CUBE FALSE
+    &END MO_CUBES
+    &TOT_DENSITY_CUBE OFF
+    &END TOT_DENSITY_CUBE
+   &END PRINT
+  &END DFT
+
+  &SUBSYS
+    &CELL
+   A   ${CELL_A}        0.0000000000        0.0000000000
+   B   0.0000000000       ${CELL_B}      0.0000000000
+   C   0.0000000000        0.0000000000      ${CELL_C}
+    &END CELL
+    &TOPOLOGY
+      CONNECTIVITY OFF
+      COORD_FILE_NAME ${XYZ}
+      COORDINATE      xyz
+    &END TOPOLOGY
+      &KIND Fe_three
+      ELEMENT Fe
+      &BS
+        &ALPHA
+           L 2 0 
+           N 3 4
+           NEL 4 -2 
+        &END
+        &BETA
+           L 2 0
+           N 3 4
+           NEL -6 -2 
+        &END
+      &END
+      BASIS_SET mod-DZV
+      POTENTIAL GTH-BLYP-q16
+   &END KIND
+      &KIND Fe_two
+      ELEMENT Fe
+      &BS
+        &ALPHA
+           L 2 0
+           N 3 4
+           NEL 4 -2
+        &END
+        &BETA
+           L 2 0
+           N 3 4
+           NEL -4 -2
+        &END
+      &END
+      BASIS_SET mod-DZV
+      POTENTIAL GTH-BLYP-q16
+   &END KIND
+
+   &KIND O
+      BASIS_SET mod-DZV
+      POTENTIAL GTH-BLYP-q6
+   &END KIND
+
+   &KIND H
+      BASIS_SET mod-DZV
+      POTENTIAL GTH-BLYP-q1
+   &END KIND
+  &END SUBSYS
+&END FORCE_EVAL
+&MOTION
+  &GEO_OPT
+    MAX_ITER 300
+    OPTIMIZER BFGS
+  &END 
+&END MOTION
+
+&GLOBAL
+  PROJECT ${PROJECT}
+  RUN_TYPE ${RUNTYPE}
+  PRINT_LEVEL MEDIUM
+  EXTENDED_FFT_LENGTHS 
+  FLUSH_SHOULD_FLUSH T   
+&END GLOBAL
+
+@if ${RESTART} == 1
+&EXT_RESTART
+  RESTART_FILE_NAME ${PROJECT}-1.restart
+  RESTART_DEFAULT T
+&END EXT_RESTART
+@endif

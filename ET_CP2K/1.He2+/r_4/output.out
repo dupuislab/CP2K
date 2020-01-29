@@ -1,0 +1,496 @@
+ DBCSR| Multiplication driver                                               BLAS
+ DBCSR| Multrec recursion limit                                              512
+ DBCSR| Multiplication stack size                                           1000
+ DBCSR| Maximum elements for images                                    UNLIMITED
+ DBCSR| Multiplicative factor virtual images                                   1
+ DBCSR| Multiplication size stacks                                             3
+ DBCSR| Number of 3D layers                                               SINGLE
+ DBCSR| Use MPI memory allocation                                              T
+ DBCSR| Use RMA algorithm                                                      F
+ DBCSR| Use Communication thread                                               T
+ DBCSR| Communication thread load                                             87
+
+
+  **** **** ******  **  PROGRAM STARTED AT               2019-07-25 10:53:59.819
+ ***** ** ***  *** **   PROGRAM STARTED ON        cpn-p28-36.cbls.ccr.buffalo.ed
+ **    ****   ******    PROGRAM STARTED BY                              pavankum
+ ***** **    ** ** **   PROGRAM PROCESS ID                                 75349
+  **** **  *******  **  PROGRAM STARTED IN /projects/academic/mdupuis2/pavan/VAB
+                                           _calculation/results_for_paper/1.He2+
+                                           /r_4
+
+ CP2K| version string:                                          CP2K version 6.1
+ CP2K| source code revision number:                                    svn:18464
+ CP2K| cp2kflags: libint fftw3 libxc parallel mpi3 scalapack libderiv_max_am1=5 
+ CP2K|            libint_max_am=6
+ CP2K| is freely available from                            https://www.cp2k.org/
+ CP2K| Program compiled at                          Fri Nov 30 14:17:09 EST 2018
+ CP2K| Program compiled on                       srv-p22-12.cbls.ccr.buffalo.edu
+ CP2K| Program compiled for                                                local
+ CP2K| Data directory path    /projects/academic/mdupuis2/pavan/cp2k/cp2k-6.1/da
+ CP2K| Input file name                                                 input.inp
+
+ GLOBAL| Force Environment number                                              3
+ GLOBAL| Basis set file name                                           BASIS_SET
+ GLOBAL| Potential file name                                           POTENTIAL
+ GLOBAL| MM Potential file name                                     MM_POTENTIAL
+ GLOBAL| Coordinate file name                                     ./geometry.xyz
+ GLOBAL| Force Environment number                                              1
+ GLOBAL| Basis set file name                                          ./HE_onlyS
+ GLOBAL| Potential file name                                         ./POTENTIAL
+ GLOBAL| MM Potential file name                                     MM_POTENTIAL
+ GLOBAL| Coordinate file name                                       ./state0.xyz
+ GLOBAL| Force Environment number                                              2
+ GLOBAL| Basis set file name                                          ./HE_onlyS
+ GLOBAL| Potential file name                                         ./POTENTIAL
+ GLOBAL| MM Potential file name                                     MM_POTENTIAL
+ GLOBAL| Coordinate file name                                       ./state1.xyz
+ GLOBAL| Method name                                                        CP2K
+ GLOBAL| Project name                                                      p_he_
+ GLOBAL| Preferred FFT library                                             FFTW3
+ GLOBAL| Preferred diagonalization lib.                                       SL
+ GLOBAL| Run type                                                         ENERGY
+ GLOBAL| All-to-all communication in single precision                          F
+ GLOBAL| FFTs using library dependent lengths                                  T
+ GLOBAL| Global print level                                               MEDIUM
+ GLOBAL| Total number of message passing processes                             8
+ GLOBAL| Number of threads for this process                                    1
+ GLOBAL| This output is from process                                           0
+ GLOBAL| CPU model name :  Intel(R) Xeon(R) CPU E5-2650 v3 @ 2.30GHz
+
+ MEMORY| system memory details [Kb]
+ MEMORY|                        rank 0           min           max       average
+ MEMORY| MemTotal            131740876     131740876     131740876     131740876
+ MEMORY| MemFree             126949424     126949424     126949424     126949424
+ MEMORY| Buffers                341028        341028        341028        341028
+ MEMORY| Cached                1364904       1364904       1364904       1364904
+ MEMORY| Slab                   318016        318016        318016        318016
+ MEMORY| SReclaimable           161796        161796        161796        161796
+ MEMORY| MemLikelyFree       128817152     128817152     128817152     128817152
+
+
+ *** Fundamental physical constants (SI units) ***
+
+ *** Literature: B. J. Mohr and B. N. Taylor,
+ ***             CODATA recommended values of the fundamental physical
+ ***             constants: 2006, Web Version 5.1
+ ***             http://physics.nist.gov/constants
+
+ Speed of light in vacuum [m/s]                             2.99792458000000E+08
+ Magnetic constant or permeability of vacuum [N/A**2]       1.25663706143592E-06
+ Electric constant or permittivity of vacuum [F/m]          8.85418781762039E-12
+ Planck constant (h) [J*s]                                  6.62606896000000E-34
+ Planck constant (h-bar) [J*s]                              1.05457162825177E-34
+ Elementary charge [C]                                      1.60217648700000E-19
+ Electron mass [kg]                                         9.10938215000000E-31
+ Electron g factor [ ]                                     -2.00231930436220E+00
+ Proton mass [kg]                                           1.67262163700000E-27
+ Fine-structure constant                                    7.29735253760000E-03
+ Rydberg constant [1/m]                                     1.09737315685270E+07
+ Avogadro constant [1/mol]                                  6.02214179000000E+23
+ Boltzmann constant [J/K]                                   1.38065040000000E-23
+ Atomic mass unit [kg]                                      1.66053878200000E-27
+ Bohr radius [m]                                            5.29177208590000E-11
+
+ *** Conversion factors ***
+
+ [u] -> [a.u.]                                              1.82288848426455E+03
+ [Angstrom] -> [Bohr] = [a.u.]                              1.88972613288564E+00
+ [a.u.] = [Bohr] -> [Angstrom]                              5.29177208590000E-01
+ [a.u.] -> [s]                                              2.41888432650478E-17
+ [a.u.] -> [fs]                                             2.41888432650478E-02
+ [a.u.] -> [J]                                              4.35974393937059E-18
+ [a.u.] -> [N]                                              8.23872205491840E-08
+ [a.u.] -> [K]                                              3.15774647902944E+05
+ [a.u.] -> [kJ/mol]                                         2.62549961709828E+03
+ [a.u.] -> [kcal/mol]                                       6.27509468713739E+02
+ [a.u.] -> [Pa]                                             2.94210107994716E+13
+ [a.u.] -> [bar]                                            2.94210107994716E+08
+ [a.u.] -> [atm]                                            2.90362800883016E+08
+ [a.u.] -> [eV]                                             2.72113838565563E+01
+ [a.u.] -> [Hz]                                             6.57968392072181E+15
+ [a.u.] -> [1/cm] (wave numbers)                            2.19474631370540E+05
+ [a.u./Bohr**2] -> [1/cm]                                   5.14048714338585E+03
+ 
+ MIXED_ENV| Number of created MPI groups:                                      1
+ MIXED_ENV| Task to group correspondence:
+  (   0 :    0)  (   1 :    0)  (   2 :    0)  (   3 :    0)
+  (   4 :    0)  (   5 :    0)  (   6 :    0)  (   7 :    0)
+          ----------------------------------------------------------------------
+ COLVARS| COLVAR INPUT INDEX:        1
+ COLVARS| ENERGY          >>> ATOMS:                                        all!
+          ----------------------------------------------------------------------
+
+ CELL_TOP| Volume [angstrom^3]:                                         2744.000
+ CELL_TOP| Vector a [angstrom    14.000     0.000     0.000    |a| =      14.000
+ CELL_TOP| Vector b [angstrom     0.000    14.000     0.000    |b| =      14.000
+ CELL_TOP| Vector c [angstrom     0.000     0.000    14.000    |c| =      14.000
+ CELL_TOP| Angle (b,c), alpha [degree]:                                   90.000
+ CELL_TOP| Angle (a,c), beta  [degree]:                                   90.000
+ CELL_TOP| Angle (a,b), gamma [degree]:                                   90.000
+ CELL_TOP| Numerically orthorhombic:                                         YES
+
+ CELL| Volume [angstrom^3]:                                             2744.000
+ CELL| Vector a [angstrom]:      14.000     0.000     0.000    |a| =      14.000
+ CELL| Vector b [angstrom]:       0.000    14.000     0.000    |b| =      14.000
+ CELL| Vector c [angstrom]:       0.000     0.000    14.000    |c| =      14.000
+ CELL| Angle (b,c), alpha [degree]:                                       90.000
+ CELL| Angle (a,c), beta  [degree]:                                       90.000
+ CELL| Angle (a,b), gamma [degree]:                                       90.000
+ CELL| Numerically orthorhombic:                                             YES
+
+ CELL_REF| Volume [angstrom^3]:                                         2744.000
+ CELL_REF| Vector a [angstrom    14.000     0.000     0.000    |a| =      14.000
+ CELL_REF| Vector b [angstrom     0.000    14.000     0.000    |b| =      14.000
+ CELL_REF| Vector c [angstrom     0.000     0.000    14.000    |c| =      14.000
+ CELL_REF| Angle (b,c), alpha [degree]:                                   90.000
+ CELL_REF| Angle (a,c), beta  [degree]:                                   90.000
+ CELL_REF| Angle (a,b), gamma [degree]:                                   90.000
+ CELL_REF| Numerically orthorhombic:                                         YES
+
+
+ MOLECULE KIND INFORMATION
+
+
+ All atoms are their own molecule, skipping detailed information
+ nspins, nimgs, gapw_xc           2           1 F 
+
+ ####### CHECKS ON A and B #######
+  E_A before:  -4.8226491256720418     
+  E_B before:  -4.8226491256720401     
+ ####### - #######
+##Inside build_kohn_sham_matrix() before doing any function calls
+ i). ELECTRON ONLY CALLS
+ 1. Electron_pw   2.8680970509339447     
+ 2. Electron_1c   4.8354820735314386E-002
+ ########## After 1st poisson call pure hartree  (sum of above two quantities) ##########   2.9164518716692589     
+ ########################
+ii). NUCLEAR ONLY CALLS
+ 1. Nuclear_pw   8.4116851227120897     
+ 2. Nuclear_1c   3.4012736860041257     
+iii). REGULAR CALL (ELECTRON+NUCLEAR)
+ 1. Hartree_pw   2.2650023837191622     
+ 2. Hartree_1c   2.4616255603420241     
+ Regular: Before call to qs_vxc Regular_exc, exc1   0.0000000000000000        0.0000000000000000     
+ Regular: After call to qs_vxc_create Regular_exc, exc1   0.0000000000000000        0.0000000000000000     
+ iv). EXCHANGE ENERGY   -1.6351416392438773     
+ v). POTENTIAL ENERGY FROM CORE HAMILTONIAN   -1.3429007183463200     
+ vi). KINETIC ENERGY    4.7125569588120930     
+ vii). SELF ENERGY   -11.283791670955125     
+      
+ E_NUC is   0.52916713776109070     
+      
+IN build_kohn_sham_matrix() CALLING qs_ks_atom(),updates single atom contributions due to gapw
+Inside build_kohn_sham_matrix() after doing all function calls and evaluating energy
+ CHECK ON A IS DONE, E_A after passing modified PA_hat density:  -4.8226491256720436     
+##Inside build_kohn_sham_matrix() before doing any function calls
+ i). ELECTRON ONLY CALLS
+ 1. Electron_pw   2.8680970509339470     
+ 2. Electron_1c   4.8354820735313386E-002
+ ########## After 1st poisson call pure hartree  (sum of above two quantities) ##########   2.9164518716692602     
+ ########################
+ii). NUCLEAR ONLY CALLS
+ 1. Nuclear_pw   8.4116851227120897     
+ 2. Nuclear_1c   3.4012736860041257     
+iii). REGULAR CALL (ELECTRON+NUCLEAR)
+ 1. Hartree_pw   2.2650023837191595     
+ 2. Hartree_1c   2.4616255603420250     
+ Regular: Before call to qs_vxc Regular_exc, exc1   0.0000000000000000        0.0000000000000000     
+ Regular: After call to qs_vxc_create Regular_exc, exc1   0.0000000000000000        0.0000000000000000     
+ iv). EXCHANGE ENERGY   -1.6351416392438780     
+ v). POTENTIAL ENERGY FROM CORE HAMILTONIAN   -1.3429007183463195     
+ vi). KINETIC ENERGY    4.7125569588120930     
+ vii). SELF ENERGY   -11.283791670955125     
+      
+ E_NUC is   0.52916713776109070     
+      
+IN build_kohn_sham_matrix() CALLING qs_ks_atom(),updates single atom contributions due to gapw
+Inside build_kohn_sham_matrix() after doing all function calls and evaluating energy
+ CHECK ON B IS DONE, E_B after passing modified PB_hat density:  -4.8226491256720454     
+ DOING ANTI-SYMMETRIC PART OF VAB
+##Inside build_kohn_sham_matrix() before doing any function calls
+ i). ELECTRON ONLY CALLS
+ 1. Electron_pw   1.6477965712206659E-008
+ 2. Electron_1c   1.2608114079717469E-015
+ ########## After 1st poisson call pure hartree  (sum of above two quantities) ##########   1.6477966973018066E-008
+ ########################
+ii). NUCLEAR ONLY CALLS
+ 1. Nuclear_pw   8.4116851227120897     
+ 2. Nuclear_1c   3.4012736860041257     
+iii). REGULAR CALL (ELECTRON+NUCLEAR)
+ 1. Hartree_pw   8.4119581900353495     
+ 2. Hartree_1c   3.4012739259088174     
+ Regular: Before call to qs_vxc Regular_exc, exc1   0.0000000000000000        0.0000000000000000     
+ Regular: After call to qs_vxc_create Regular_exc, exc1   0.0000000000000000        0.0000000000000000     
+ iv). EXCHANGE ENERGY   -3.0869572824759179E-002
+ v). POTENTIAL ENERGY FROM CORE HAMILTONIAN    2.4515714358867759E-007
+ vi). KINETIC ENERGY    2.9699861548202627E-004
+ vii). SELF ENERGY   -11.283791670955125     
+      
+ E_NUC is   0.52916713776109070     
+      
+IN build_kohn_sham_matrix() CALLING qs_ks_atom(),updates single atom contributions due to gapw
+Inside build_kohn_sham_matrix() after doing all function calls and evaluating energy
+ DOING SYMMETRIC PART OF VAB
+##Inside build_kohn_sham_matrix() before doing any function calls
+ i). ELECTRON ONLY CALLS
+ 1. Electron_pw   4.7655598303293468E-005
+ 2. Electron_1c   7.3673654683998255E-007
+ ########## After 1st poisson call pure hartree  (sum of above two quantities) ##########   4.8392334850133454E-005
+ ########################
+ ehartree, ehartree_1c after multiplying with DTPROD/DHPROD  -1.1054504546055348E-002  -1.7089823223822285E-004
+ dtprod, dhprod are  -1.0000000000000000        4.3109664575875298E-003
+ J2_AB is   -1.1225402778293573E-002
+ii). NUCLEAR ONLY CALLS
+ 1. Nuclear_pw   8.4116851227120897     
+ 2. Nuclear_1c   3.4012736860041257     
+iii). REGULAR CALL (ELECTRON+NUCLEAR)
+ 1. Hartree_pw   8.3740966411099720     
+ 2. Hartree_1c   3.3973309832704621     
+ Regular: Before call to qs_vxc Regular_exc, exc1   0.0000000000000000        0.0000000000000000     
+ Regular: After call to qs_vxc_create Regular_exc, exc1   0.0000000000000000        0.0000000000000000     
+ iv). EXCHANGE ENERGY   -3.0895182089483598E-002
+ v). POTENTIAL ENERGY FROM CORE HAMILTONIAN   -5.3386657406222175E-003
+ vi). KINETIC ENERGY    1.8342856424840591E-002
+ vii). SELF ENERGY   -11.283791670955125     
+      
+ E_NUC is   0.52916713776109070     
+      
+IN build_kohn_sham_matrix() CALLING qs_ks_atom(),updates single atom contributions due to gapw
+ ########################
+ #########  ET  #########
+ ------------------------
+ E_NUC  0.52916713776109070     
+ HAA <a|H|a>  -5.3518162634331334     
+ HBB <b|H|b>  -5.3518162634331343     
+             
+ <a|H1|b>   2.8575385986413661E-002
+ <a|H2|b>  -5.2849100891553501E-003
+ ...<a|J2|b>  -1.1225402778293573E-002
+ ...<a|K2|b>   5.9404926891382225E-003
+ HAB <a|H|b>   2.3290475897258311E-002
+ SAB  -4.3109664575875298E-003
+ VAB   2.1897956803753986E-004
+  VAB in different units 
+ ------------------------
+          5.9587370826123835E-003 eV
+          48.060459972719144      1/cm
+         0.13741175239840070      kcal/mol
+         0.57493077203490850      kJ/mol
+          1440816342783.2085      Hertz
+ ------------------------
+ ------------------------
+ E+  -5.3515963398417838     
+ E-  -5.3520342989973404     
+ (E+ - E-)/2   2.1897957777764930E-004
+          5.9587373476542400E-003 eV
+          48.060462110426073      1/cm
+         0.13741175851041160      kcal/mol
+         0.57493079760756216      kJ/mol
+          1440816406870.0498      Hertz
+ ------------------------
+ ------------------------
+Inside build_kohn_sham_matrix() after doing all function calls and evaluating energy
+ NO FORCE_EVAL section calculated the dipole
+
+ ENERGY| Total FORCE_EVAL ( MIXED ) energy (a.u.):            -0.000000000000002
+
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                                DBCSR STATISTICS                             -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+ COUNTER                                    TOTAL       BLAS       SMM       ACC
+ flops     2 x     1 x     2                   64     100.0%      0.0%      0.0%
+ flops     2 x     2 x     2                  960     100.0%      0.0%      0.0%
+ flops inhomo. stacks                         480     100.0%      0.0%      0.0%
+ flops total                         1.504000E+03     100.0%      0.0%      0.0%
+ flops max/rank                    960.000000E+00     100.0%      0.0%      0.0%
+ matmuls inhomo. stacks                        60     100.0%      0.0%      0.0%
+ matmuls total                                128     100.0%      0.0%      0.0%
+ number of processed stacks                    84     100.0%      0.0%      0.0%
+ average stack size                                     1.5       0.0       0.0
+ marketing flops                     1.984000E+03
+ -------------------------------------------------------------------------------
+ # multiplications                             42
+ max memory usage/rank             593.592320E+06
+ # max total images/rank                        2
+ # max 3D layers                                1
+ # MPI messages exchanged                    3024
+ MPI messages size (bytes):
+  total size                        12.480000E+03
+  min size                           0.000000E+00
+  max size                          64.000000E+00
+  average size                       4.126984E+00
+ MPI breakdown and total messages size (bytes):
+             size <=      128                3024                    12480
+       128 < size <=     8192                   0                        0
+      8192 < size <=    32768                   0                        0
+     32768 < size <=   131072                   0                        0
+    131072 < size <=  4194304                   0                        0
+   4194304 < size <= 16777216                   0                        0
+  16777216 < size                               0                        0
+ -------------------------------------------------------------------------------
+
+ *** WARNING in dbcsr/mm/dbcsr_mm.F:268 :: Using a non-square number of ***
+ *** MPI ranks might lead to poor performance.                          ***
+ *** Used ranks: 8                                                      ***
+ *** Suggested: 9 16                                                    ***
+
+ -------------------------------------------------------------------------------
+
+ MEMORY| Estimated peak process memory [MiB]                                 567
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                         MESSAGE PASSING PERFORMANCE                         -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+
+ ROUTINE             CALLS      AVE VOLUME [Bytes]
+ MP_Group               93
+ MP_Bcast              340                  10225.
+ MP_Allreduce         1398                   1252.
+ MP_Sync               271
+ MP_Alltoall          1998                2679453.
+ MP_ISendRecv         2632                 184724.
+ MP_Wait              6958
+ MP_comm_split          41
+ MP_ISend             2852                 501639.
+ MP_IRecv             2772                 516115.
+ MP_Recv                 2                     32.
+ MP_Memory            2504
+ -------------------------------------------------------------------------------
+
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                           R E F E R E N C E S                               -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+ 
+ CP2K version 6.1, the CP2K developers group (2018).
+ CP2K is freely available from https://www.cp2k.org/ .
+
+ Schuett, Ole; Messmer, Peter; Hutter, Juerg; VandeVondele, Joost. 
+ Electronic Structure Calculations on Graphics Processing Units, John Wiley & Sons, Ltd, 173-190 (2016). 
+ GPU-Accelerated Sparse Matrix-Matrix Multiplication for Linear Scaling Density Functional Theory.
+ http://dx.doi.org/10.1002/9781118670712.ch8
+
+
+ Borstnik, U; VandeVondele, J; Weber, V; Hutter, J. 
+ PARALLEL COMPUTING, 40 (5-6), 47-58 (2014). 
+ Sparse matrix multiplication: The distributed block-compressed sparse
+ row library.
+ http://dx.doi.org/10.1016/j.parco.2014.03.012
+
+
+ Hutter, J; Iannuzzi, M; Schiffmann, F; VandeVondele, J. 
+ WILEY INTERDISCIPLINARY REVIEWS-COMPUTATIONAL MOLECULAR SCIENCE, 4 (1), 15-25 (2014). 
+ CP2K: atomistic simulations of condensed matter systems.
+ http://dx.doi.org/10.1002/wcms.1159
+
+
+ Guidon, M; Hutter, J; VandeVondele, J. 
+ JOURNAL OF CHEMICAL THEORY AND COMPUTATION, 5 (11), 3010-3021 (2009). 
+ Robust Periodic Hartree-Fock Exchange for Large-Scale Simulations Using
+ Gaussian Basis Sets.
+ http://dx.doi.org/10.1021/ct900494g
+
+
+ Guidon, M; Schiffmann, F; Hutter, J; VandeVondele, J. 
+ JOURNAL OF CHEMICAL PHYSICS, 128 (21), 214104 (2008). 
+ Ab initio molecular dynamics using hybrid density functionals.
+ http://dx.doi.org/10.1063/1.2931945
+
+
+ Frigo, M; Johnson, SG. 
+ PROCEEDINGS OF THE IEEE, 93 (2), 216-231 (2005). 
+ The design and implementation of FFTW3.
+ http://dx.doi.org/10.1109/JPROC.2004.840301
+
+
+ Lippert, G; Hutter, J; Parrinello, M. 
+ THEORETICAL CHEMISTRY ACCOUNTS, 103 (2), 124-140 (1999). 
+ The Gaussian and augmented-plane-wave density functional method for ab
+ initio molecular dynamics simulations.
+ http://dx.doi.org/10.1007/s002140050523
+
+
+ Krack, M; Parrinello, M. 
+ PHYSICAL CHEMISTRY CHEMICAL PHYSICS, 2 (10), 2105-2112 (2000). 
+ All-electron ab-initio molecular dynamics.
+ http://dx.doi.org/10.1039/b001167n
+
+
+ Martyna, GJ; Tuckerman, ME. 
+ JOURNAL OF CHEMICAL PHYSICS, 110 (6), 2810-2821 (1999). 
+ A reciprocal space based method for treating long range interactions in
+ ab initio and force-field-based calculations in clusters.
+ http://dx.doi.org/10.1063/1.477923
+
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                                T I M I N G                                  -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+ SUBROUTINE                       CALLS  ASD         SELF TIME        TOTAL TIME
+                                MAXIMUM       AVERAGE  MAXIMUM  AVERAGE  MAXIMUM
+ CP2K                                 1  1.0    0.045    0.053   17.422   17.422
+ qs_energies                          2  2.0    0.000    0.000   14.008   14.010
+ scf_env_do_scf                       2  3.0    0.000    0.000   13.267   13.269
+ scf_env_do_scf_inner_loop           20  4.0    0.001    0.002   13.267   13.269
+ pw_transfer                        570  8.7    0.024    0.027   10.779   10.823
+ fft_wrap_pw1pw2                    474  9.8    0.003    0.004   10.554   10.596
+ fft_wrap_pw1pw2_140                196 10.5    0.695    0.713    9.595    9.683
+ qs_ks_update_qs_env                 24  4.5    0.001    0.001    8.732    8.738
+ rebuild_ks_matrix                   24  5.5    0.000    0.000    8.730    8.736
+ qs_ks_build_kohn_sham_matrix        24  6.5    0.017    0.022    8.730    8.736
+ fft3d_ps                           474 11.8    5.835    5.940    8.116    8.148
+ qs_rho_update_rho                   26  4.5    0.000    0.000    7.324    7.324
+ calculate_rho_elec                  52  5.5    0.116    0.122    7.321    7.321
+ density_rs2pw                       52  6.5    0.002    0.003    6.939    6.960
+ rs_pw_transfer                     430  9.0    0.005    0.005    3.301    3.321
+ sum_up_and_integrate                20  8.0    0.000    0.000    3.278    3.280
+ integrate_v_rspace                  40  9.0    0.008    0.011    3.278    3.280
+ potential_pw2rs                     40 10.0    0.005    0.005    3.266    3.270
+ prepare_gapw_den                    32  6.9    0.004    0.006    2.366    2.379
+ put_rho0_on_grid                    32  7.9    0.065    0.067    2.311    2.324
+ rs_pw_transfer_RS2PW_140            86  9.0    1.182    1.190    1.505    1.513
+ rs_pw_transfer_PW2RS_140            68 10.9    0.936    0.953    1.389    1.399
+ yz_to_x                            282 12.2    1.010    1.018    1.349    1.378
+ pw_gather_p                        282 11.2    1.067    1.087    1.067    1.087
+ x_to_yz                            192 13.8    0.680    0.697    0.925    1.017
+ pw_poisson_solve                    32  6.9    0.365    0.368    0.965    0.967
+ qs_init_subsys                       2  2.0    0.002    0.002    0.911    0.911
+ qs_env_setup                         2  3.0    0.000    0.000    0.903    0.903
+ qs_env_rebuild_pw_env                4  3.5    0.000    0.000    0.902    0.902
+ pw_env_rebuild                       2  5.0    0.001    0.001    0.901    0.902
+ pw_grid_setup                       10  6.0    0.001    0.001    0.889    0.889
+ pw_grid_setup_internal              10  7.0    0.025    0.025    0.888    0.888
+ pw_grid_sort                        10  8.0    0.508    0.511    0.743    0.755
+ mp_alltoall_z22v                   474 13.8    0.583    0.701    0.583    0.701
+ fft_wrap_pw1pw2_50                  92 11.0    0.050    0.054    0.586    0.615
+ pw_scatter_p                       192 12.8    0.592    0.596    0.592    0.596
+ integrate_vhg0_rspace               24  7.5    0.002    0.002    0.591    0.595
+ init_scf_run                         2  3.0    0.000    0.000    0.584    0.584
+ scf_env_initial_rho_setup            2  4.0    0.000    0.000    0.582    0.582
+ mp_waitany                        1848 10.8    0.545    0.578    0.545    0.578
+ rs_grid_zero                       334  8.0    0.563    0.567    0.563    0.567
+ pw_poisson_rebuild                  32  7.9    0.005    0.006    0.421    0.425
+ MTin_create_screen_fn                2 10.0    0.017    0.017    0.415    0.419
+ pw_copy                            310  9.9    0.378    0.385    0.378    0.385
+ -------------------------------------------------------------------------------
+
+ The number of warnings for this run is : 1
+ 
+ -------------------------------------------------------------------------------
+  **** **** ******  **  PROGRAM ENDED AT                 2019-07-25 10:54:17.436
+ ***** ** ***  *** **   PROGRAM RAN ON            cpn-p28-36.cbls.ccr.buffalo.ed
+ **    ****   ******    PROGRAM RAN BY                                  pavankum
+ ***** **    ** ** **   PROGRAM PROCESS ID                                 75349
+  **** **  *******  **  PROGRAM STOPPED IN /projects/academic/mdupuis2/pavan/VAB
+                                           _calculation/results_for_paper/1.He2+
+                                           /r_4

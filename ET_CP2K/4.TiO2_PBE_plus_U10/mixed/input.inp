@@ -1,0 +1,98 @@
+@SET PROJECT  p_tio2_
+@SET RESFILE  p_tio2_
+@SET RESFILE0 p_0_
+@SET RESFILE1 p_1_
+@SET RESTART 0
+@SET CELL_A 13.869
+@SET CELL_B 13.869
+@SET CELL_C 14.907
+@SET RUNTYPE ENERGY
+@SET OT_MINI CG
+@SET EPSSCF 1.0E-05
+
+
+&GLOBAL
+  PROJECT ${PROJECT}
+  RUN_TYPE ${RUNTYPE}
+  PRINT_LEVEL MEDIUM
+  EXTENDED_FFT_LENGTHS 
+  FLUSH_SHOULD_FLUSH T   
+&END GLOBAL
+
+&MULTIPLE_FORCE_EVALS
+  FORCE_EVAL_ORDER 1 2
+  MULTIPLE_SUBSYS F
+&END
+
+@SET XYZ   ./geometry.xyz
+@SET CHARGE  -1
+@include dft_0.inc
+@SET CHARGE -1
+@include dft_1.inc
+&FORCE_EVAL
+  METHOD MIXED
+  &MIXED
+    MIXING_TYPE GENMIX
+    NGROUPS  1
+    &VAB
+            DO_VAB
+            &HF
+              FRACTION 1.0
+              &INTERACTION_POTENTIAL
+                POTENTIAL_TYPE TRUNCATED
+                CUTOFF_RADIUS [angstrom]  6.93311
+                T_C_G_DATA ./t_c_g.dat
+              &END
+              &MEMORY
+                      MAX_MEMORY 5000
+              &END
+            &END
+    &END
+
+    &GENERIC
+      MIXING_FUNCTION E1-E2
+      VARIABLES E1 E2
+    &END
+  &END
+ &SUBSYS
+    &CELL
+   A   ${CELL_A}        0.0000000000        0.0000000000
+   B   0.0000000000       ${CELL_B}      0.0000000000
+   C   0.0000000000        0.0000000000      ${CELL_C}
+    &END CELL
+  &TOPOLOGY
+    COORD_FILE_FORMAT XYZ
+    COORD_FILE_NAME ${XYZ}
+  &END TOPOLOGY
+   &KIND Ti
+      ELEMENT Ti
+      BASIS_SET SZV-MOLOPT-SR-GTH
+      POTENTIAL GTH-PBE-q12
+      &DFT_PLUS_U
+         L 2
+         U_MINUS_J 0.367
+      &END DFT_PLUS_U
+    &END KIND
+    &KIND O
+      BASIS_SET SZV-MOLOPT-GTH
+      POTENTIAL GTH-PBE-q6
+    &END KIND
+
+    &COLVAR
+       &U
+         &MIXED
+           ENERGY_FUNCTION E2-E1
+           VARIABLES E1 E2
+         &END
+       &END
+    &END COLVAR
+  &END SUBSYS
+&END FORCE_EVAL
+
+
+@if ${RESTART} == 1
+&EXT_RESTART
+  RESTART_FILE_NAME ${PROJECT}-1.restart
+  RESTART_DEFAULT T
+&END EXT_RESTART
+@endif
