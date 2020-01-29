@@ -1,6 +1,6 @@
 # MOA-CP2K
 
-Maximal Orbital Analysis (MOA) for better interpretation of electronic interactions based on Dupuis et al.'s, work is available.
+Maximal Orbital Analysis (MOA) for better interpretation of electronic interactions based on Dupuis et al.'s work <sup> [1] </sup> is available.
 
 Testcases for few molecular systems are in this folder. More test cases will be added soon. Input section is as follows:<br />
 
@@ -20,4 +20,6 @@ Testcases for few molecular systems are in this folder. More test cases will be 
          &END MOA
     &END PROPERTIES
 
+References:
 
+1.    Michel Dupuis, Meghana Nallapu, Journal of Computational Chemistry 2019, 40, 39–50
