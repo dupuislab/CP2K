@@ -128,7 +128,8 @@ CONTAINS
       CHARACTER(LEN=2)                                   :: element_symbol
       INTEGER                                            :: handle, iatom, ibfn, ii, ispin, iw, icount, &
                                                             ikind, natom, nfrg, nkind, nmo, &
-                                                            nsgf, nspin, z_val, ind_count, ifrg, lfrg, z_frg
+                                                            nsgf, nspin, z_val, ind_count, ifrg, &
+                                                            lfrg, z_frg
       INTEGER, DIMENSION(:), POINTER                     :: len_frg, frg_indices, nomoa_in, &
                                                             nomoaa_in, nomoab_in, ind_frg, mo_list
       INTEGER, DIMENSION(:), ALLOCATABLE                 :: nomoa, nomoaa, nomoab
@@ -152,7 +153,7 @@ CONTAINS
       TYPE(scf_control_type), POINTER                    :: scf_control
       TYPE(section_vals_type), POINTER                   :: mo_print_sec
       LOGICAL                                            :: if_debug
-
+      REAL(KIND=dp)                                      :: zeff
       CALL timeset(routineN, handle)
 
       NULLIFY (atomic_kind_set)
@@ -381,8 +382,8 @@ CONTAINS
 
             CALL cp_fm_get_submatrix(fm_S, real_atomblock, icount+1, &
                                  icount+1, ibfn, ibfn)
-            IF(iw>0) WRITE(iw,*) "No. of spherical basis fns is ", ibfn, &
-               "for atom kind", ikind, "atom name", qs_kind_set(ikind)%name 
+            !IF(iw>0) WRITE(iw,*) "No. of spherical basis fns is ", ibfn, &
+            !   "for atom kind ", ikind, "atom number ", iatom, " atom name ", qs_kind_set(ikind)%name 
             CALL write_real_2dmatrix_to(real_atomblock, 124, "Atom block")
             ! Jacobi diagonalization of matrix real_atomblock
             ! Syntax diag(n, a, d, v): Diagonalize matrix a. The eigenvalues are returned in vector d
@@ -516,7 +517,9 @@ CONTAINS
             WRITE(iw,*) '     ---------------------------',&
                                '-------------------------' 
             DO iatom=1,natom
-               CALL get_atomic_kind(particle_set(iatom)%atomic_kind, element_symbol=element_symbol, z=z_val)
+               CALL get_atomic_kind(particle_set(iatom)%atomic_kind, element_symbol=element_symbol, z=z_val, kind_number=ikind)
+               CALL get_qs_kind(qs_kind_set(ikind), zeff=zeff)
+               WRITE(196,*) "ikind, zeff", ikind, zeff
                WRITE(iw," (I9, A9, I9, 3(1X,F12.5)) ")  &
                     iatom, element_symbol, z_val, &
                     popmoa(iatom), chgmoa(iatom), spnmoa(iatom)
@@ -551,8 +554,7 @@ CONTAINS
                ind_count = ind_count + lfrg 
                DEALLOCATE(ind_frg)
             END DO
-         END IF
-         IF(iw>0) THEN
+           IF(iw>0) THEN
             WRITE(iw,*) '  MOA for Fragments'
             WRITE(iw,*) '  -------------'
             WRITE(iw,*) ' FRAG   POP', &
@@ -564,14 +566,13 @@ CONTAINS
                     ifrg, &
                     popfrg(ifrg), chgfrg(ifrg), spnfrg(ifrg)
             ENDDO
-         ENDIF
-
-         IF(iw>0) WRITE(iw,*) "..... END of MOA analysis for Fragments ....."
-         IF(iw>0) WRITE(iw,*) " "
-         IF(iw>0) WRITE(iw,*) "..... END of MOA analysis ....."
-
-
-         DEALLOCATE(tmp_block, diag_mat, v_mat, popmoa, chgmoa, spnmoa, popfrg, chgfrg, spnfrg) 
+           ENDIF
+           IF(iw>0) WRITE(iw,*) "..... END of MOA analysis for Fragments ....."
+           IF(iw>0) WRITE(iw,*) " "
+           IF(iw>0) WRITE(iw,*) "..... END of MOA analysis ....."
+           DEALLOCATE(popfrg, chgfrg, spnfrg)
+         END IF
+         DEALLOCATE(tmp_block, diag_mat, v_mat, popmoa, chgmoa, spnmoa) 
          
          
       END IF
@@ -622,7 +623,7 @@ CONTAINS
       TYPE(cp_fm_struct_type), POINTER                    :: fmstruct
       TYPE(cp_fm_type), POINTER                           :: fm_P, fm_PP, fm_V2, fm_tmp
       TYPE(gto_basis_set_type), POINTER                   :: basis_set
-      REAL(KIND=dp)                                       :: pop_i
+      REAL(KIND=dp)                                       :: pop_i, zeff_atom
       REAL(KIND=dp), DIMENSION(:, :), POINTER             :: pp_atomblock, U_mat
       REAL(KIND=dp), DIMENSION(:), POINTER                :: diag_mat
 
@@ -713,7 +714,7 @@ CONTAINS
 
       DO iatom=1,SIZE(particle_set)
          CALL get_atomic_kind(particle_set(iatom)%atomic_kind, kind_number=ikind, z=z_atom)
-         CALL get_qs_kind(qs_kind_set(ikind), basis_set=basis_set)
+         CALL get_qs_kind(qs_kind_set(ikind), basis_set=basis_set, zeff=zeff_atom)
          CALL get_gto_basis_set(gto_basis_set=basis_set, nsgf=ibfn) ! no. of basis functions in iatom
          
          ! ----- Get the atom block of - P*P(t) - -----
@@ -721,7 +722,7 @@ CONTAINS
          CALL cp_fm_get_submatrix(fm_PP, pp_atomblock, icount+1, &
                               icount+1, ibfn, ibfn)
          IF(iw>0) WRITE(iw,*) "No. of spherical basis fns is ", ibfn, &
-            "for atom kind", ikind, "atom name", qs_kind_set(ikind)%name
+            "for atom kind ", ikind, "atom number ", iatom, " atom name", qs_kind_set(ikind)%name
          IF(if_debug) THEN
                 CALL write_real_2dmatrix_to(pp_atomblock, 124, "P*P(t) Atom block")
          END IF
@@ -771,11 +772,11 @@ CONTAINS
          IF(ispin .EQ. 1) THEN
            spnmoa(iatom) =  0.0_dp
            popmoa(iatom) =  popmoa(iatom)
-           chgmoa(iatom) = -popmoa(iatom) + REAL(z_atom, kind=dp)
+           chgmoa(iatom) = -popmoa(iatom) + zeff_atom
          ELSE
            spnmoa(iatom) =  popmoa(iatom) - chgmoa(iatom)
            popmoa(iatom) =  popmoa(iatom) + chgmoa(iatom)
-           chgmoa(iatom) = -popmoa(iatom) + REAL(z_atom, kind=dp)
+           chgmoa(iatom) = -popmoa(iatom) + zeff_atom
          END IF
      
 
@@ -820,7 +821,7 @@ CONTAINS
       CHARACTER(LEN=2)                                   :: element_symbol
       INTEGER                                            :: handle, iatom, jatom, iw, natom, &
                                                             nkind, nspin, nsgf, &
-                                                            z_val, z_frg1, z_frg2, &
+                                                            z_val, z_f1, z_f2, &
                                                             ikind, jkind, ibfn, jbfn, bf_count, &
                                                             icount, jcount, ii, ispin, nmo
       LOGICAL                                            :: iat_yes, jat_yes
@@ -844,7 +845,7 @@ CONTAINS
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
       TYPE(scf_control_type), POINTER                    :: scf_control
       TYPE(section_vals_type), POINTER                   :: mo_print_sec
-
+      REAL(KIND=dp)                                      :: z_frg1, z_frg2, zeff_frg
       CALL timeset(routineN, handle)
 
       NULLIFY (atomic_kind_set)
@@ -929,21 +930,29 @@ CONTAINS
          ! Nuclear charge of the fragment and rest of the system
          ! z_frg1 is for the defined fragment
          ! z_frg2 is for rest of the system
-         z_frg1 = 0
-         z_frg2 = 0
+         z_frg1 = 0     !to get the right charge when using gth-potentials
+         z_frg2 = 0      
+         z_f1 = 0       ! For total nuclear charge
+         z_f2 = 0       ! For total nuclear charge
          DO iatom=1,natom
             IF (atom_in_frg(iatom)) THEN
-               CALL get_atomic_kind(particle_set(iatom)%atomic_kind, element_symbol=element_symbol, z=z_val)
-               z_frg1 = z_frg1+z_val
+               CALL get_atomic_kind(particle_set(iatom)%atomic_kind, element_symbol=element_symbol, &
+                                    kind_number=ikind, z=z_val)
+               CALL get_qs_kind(qs_kind_set(ikind), zeff=zeff_frg)
+               z_frg1 = z_frg1+zeff_frg
+               z_f1   = z_f1 + z_val
             ELSE 
-               CALL get_atomic_kind(particle_set(iatom)%atomic_kind, element_symbol=element_symbol, z=z_val)
-               z_frg2 = z_frg2+z_val
+               CALL get_atomic_kind(particle_set(iatom)%atomic_kind, element_symbol=element_symbol, &
+                                    kind_number=ikind, z=z_val)
+               CALL get_qs_kind(qs_kind_set(ikind), zeff=zeff_frg)
+               z_frg2 = z_frg2+zeff_frg
+               z_f2   = z_f2 + z_val
             END IF
          ENDDO
-         z_frg = z_frg1
+         z_frg = z_f1
 
-         IF(iw>0) WRITE(iw,*) "Total nuclear charge on fragement, ", ifrg," is: ", z_frg1
-         IF(iw>0) WRITE(iw,*) "Total nuclear charge on rest of the system is: ", z_frg2
+         IF(iw>0) WRITE(iw,*) "Total nuclear charge on fragement, ", ifrg," is: ", z_f1
+         IF(iw>0) WRITE(iw,*) "Total nuclear charge on rest of the system is: ", z_f2
 
          ! Basis functions belong to fragment or not
          ! bf_frg has the truth value for all nsgf basis fns
@@ -1174,7 +1183,7 @@ CONTAINS
                CALL get_atomic_kind(particle_set(jatom)%atomic_kind, kind_number=jkind)
                CALL get_qs_kind(qs_kind_set(jkind), basis_set=basis_set_j)
                CALL get_gto_basis_set(gto_basis_set=basis_set_j, nsgf=jbfn) ! no. of basis functions in jatom
-               IF(iw>0) WRITE(iw,*) "IAT, JAT = ", iatom, jatom, iat_yes, jat_yes
+               !IF(iw>0) WRITE(iw,*) "IAT, JAT = ", iatom, jatom, iat_yes, jat_yes
                ! Zero out (iatom, jatom) block if iat_yes or jat_yes is false or
                ! iatom.NE.jatom
                IF(iat_yes.AND.jat_yes) THEN
@@ -1367,7 +1376,7 @@ CONTAINS
                                                              fm_T4, fm_TI4
       REAL(KIND=dp), DIMENSION(:), POINTER, INTENT(INOUT) :: popfrg, chgfrg, spnfrg
       LOGICAL, DIMENSION(:), POINTER                      :: bf_frg
-      INTEGER                                             :: z_frg
+      REAL(KIND=dp)                                       :: z_frg
       INTEGER, INTENT(IN)                                 :: norb, nsgf, nspin, ispin, ifrg, iw
       INTEGER, DIMENSION(:), ALLOCATABLE                  :: nomoa
       TYPE(cp_para_env_type), POINTER                     :: para_env
@@ -1622,11 +1631,11 @@ CONTAINS
       IF(ispin .EQ. 1) THEN
         spnfrg(ifrg) =  0.0_dp
         popfrg(ifrg) =  popfrg(ifrg)
-        chgfrg(ifrg) = -popfrg(ifrg) + REAL(z_frg, kind=dp)
+        chgfrg(ifrg) = -popfrg(ifrg) + z_frg
       ELSE
         spnfrg(ifrg) =  popfrg(ifrg) - chgfrg(ifrg)
         popfrg(ifrg) =  popfrg(ifrg) + chgfrg(ifrg)
-        chgfrg(ifrg) = -popfrg(ifrg) + REAL(z_frg, kind=dp)
+        chgfrg(ifrg) = -popfrg(ifrg) + z_frg
       END IF
 
 
@@ -1672,11 +1681,11 @@ CONTAINS
                                      "PROPERTIES%MOA%MO_CUBES") /= 0) THEN
          CALL section_vals_val_get(mo_print_sec, "MO_CUBES%MO_LIST", &
                                                i_vals=mo_list)
+      
+         DO imoa=1,SIZE(mo_list)
+             CALL write_moa_cube(qs_env, logger, mo_print_sec, moa_coeff, mo_list(imoa), ispin, ifrg)
+         END DO
       END IF
-      DO imoa=1,SIZE(mo_list)
-         CALL write_moa_cube(qs_env, logger, mo_print_sec, moa_coeff, mo_list(imoa), ispin, ifrg)
-      END DO
-
       DEALLOCATE(PP, diag_mat, U_mat, U_mat_truncated)
 
       CALL cp_fm_release(fm_P)
