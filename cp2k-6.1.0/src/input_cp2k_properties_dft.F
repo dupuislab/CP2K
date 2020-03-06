@@ -177,6 +177,14 @@ CONTAINS
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
 
+      CALL keyword_create(keyword, name="IFUNO", &
+                          description="To create UNO orbs from UHF orbs and do MOA only on"// &
+                                       "additional alpha orbital", &
+                          n_var=1, type_of_var=logical_t, &
+                          default_l_val=.FALSE., lone_keyword_l_val=.TRUE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
       CALL keyword_create(keyword, name="NOMOA", &
                           description="Exclude molecular orbitals"// &
                           "Any non-zero number will exclude that "// &
