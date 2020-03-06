@@ -750,6 +750,7 @@ CONTAINS
          ! orthonormal Sph. Harm Basis on iatom
          !CALL jacobi(pp_atomblock, diag_mat, U_mat)
          ! Diagonalize matrix a
+         ! Jacobi not needed here, replaced with a faster eigv_solver
          CALL cp_fm_to_fm_submat(fm_PP, fm_atomblock, ibfn, ibfn, icount+1, icount+1, 1, 1)
          CALL choose_eigv_solver(fm_atomblock, fm_U_mat, diag_mat, info)
          ! CHANGE_DIAG
@@ -759,7 +760,7 @@ CONTAINS
 
          !IF(if_debug) THEN
          !       CALL write_real_1dmatrix_to(diag_mat, 124, "eigen values of atomblock- P*P(t)")
-         !       CALL write_real_2dmatrix_to(U_mat, 124, "U_mat of SVD of atomblock- P*P(t)")
+         !       CALL write_real_2dmatrix_to(U_mat, 124, "U_mat of EVD of atomblock- P*P(t)")
          !END IF
          IF(iw>0) WRITE(iw,*) "No. of spherical basis fns is ", ibfn, &
             "for atom kind ", ikind, "atom number ", iatom, " atom name   ", qs_kind_set(ikind)%name
@@ -1810,13 +1811,14 @@ CONTAINS
       ! orthonormal Sph. Harm Basis on iatom
       ! Diagonalize matrix a
 
+      ! Jacobi diag not needed here, so replaced with faster eigv-solver
       CALL choose_eigv_solver(fm_PP, fm_U_mat, diag_mat, info)
 
       ! Doing diagonalization to get maximal overlap, in -MOA- orbs -U- in Molec Ortho Frag Ortho ---
       ! --- Atom Ortho Sph. Harm. basis
       IF(if_debug) THEN
         CALL write_real_1dmatrix_to(diag_mat, 124, "eigen values of P*P(t) for fragment MOA orbs")
-        !CALL write_real_2dmatrix_to(U_mat, 124, "U_mat of SVD of P*P(t) for fragment MOA orbs")
+        !CALL write_real_2dmatrix_to(U_mat, 124, "U_mat of EVD of P*P(t) for fragment MOA orbs")
       END IF
      
       ! Get MOA fragment population 
