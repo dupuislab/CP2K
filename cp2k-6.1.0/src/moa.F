@@ -272,6 +272,8 @@ CONTAINS
                 nomoaa = nomoa
          ELSE IF (SIZE(nomoaa_in) .LT. nmo) THEN
                 nomoaa = [nomoaa_in, [(0,ii=1,nmo-SIZE(nomoaa_in))]]
+         ELSE IF(SIZE(nomoaa_in) .EQ. nmo) THEN
+                nomoaa = nomoaa_in
          END IF
 
          IF(nspin > 1) THEN
@@ -287,6 +289,8 @@ CONTAINS
                         END IF
                  ELSE IF (SIZE(nomoab_in) .LT. nmo) THEN
                         nomoab = [nomoab_in, [(0,ii=1,nmo-SIZE(nomoab_in))]]
+                 ELSE IF(SIZE(nomoab_in) .EQ. nmo) THEN
+                        nomoab = nomoab_in
                  END IF        
          END IF
 
@@ -389,13 +393,13 @@ CONTAINS
                                  icount+1, ibfn, ibfn)
             IF(iw>0) WRITE(iw,*) "No. of spherical basis fns is ", ibfn, &
                "for atom kind ", ikind, "atom number ", iatom, " atom name  ", qs_kind_set(ikind)%name 
-            CALL write_real_2dmatrix_to(real_atomblock, 124, "Atom block")
+            !CALL write_real_2dmatrix_to(real_atomblock, 124, "Atom block")
             ! Jacobi diagonalization of matrix real_atomblock
             ! Syntax diag(n, a, d, v): Diagonalize matrix a. The eigenvalues are returned in vector d
             ! and the eigenvectors are returned in matrix v.
             CALL diag(ibfn, real_atomblock, diag_atomblock, v_atomblock)
-            CALL write_real_1dmatrix_to(diag_atomblock, 124, "daig_atomblock")
-            CALL write_real_2dmatrix_to(v_atomblock, 124, "v_ block")
+            !CALL write_real_1dmatrix_to(diag_atomblock, 124, "daig_atomblock")
+            !CALL write_real_2dmatrix_to(v_atomblock, 124, "v_ block")
 
             ! Transformation matrix T is (EV)*(1/sqrt(diag))*(EV(t))
             ! Its inverse matrix TI is (EV)*(sqrt(diag))*(EV(t))
@@ -506,7 +510,6 @@ CONTAINS
          
          DO ispin=1,nspin
             CALL get_mo_set(mos(ispin)%mo_set, nmo=nmo) 
-            WRITE(144,*) "nmo in maximal orbital analysis routine is ", nmo
             CALL orbmoa(fm_S, mos(ispin)%mo_set%mo_coeff, fm_TI, fm_OI, &
                         popmoa, chgmoa, spnmoa, particle_set, qs_kind_set, nmo, nsgf,&
                         nspin, ispin, iw, para_env, blacs_env, if_debug)
@@ -524,7 +527,6 @@ CONTAINS
             DO iatom=1,natom
                CALL get_atomic_kind(particle_set(iatom)%atomic_kind, element_symbol=element_symbol, z=z_val, kind_number=ikind)
                CALL get_qs_kind(qs_kind_set(ikind), zeff=zeff)
-               WRITE(196,*) "ikind, zeff", ikind, zeff
                WRITE(iw," (I9, A9, I9, 3(1X,F12.5)) ")  &
                     iatom, element_symbol, z_val, &
                     popmoa(iatom), chgmoa(iatom), spnmoa(iatom)
@@ -1100,8 +1102,8 @@ CONTAINS
             ALLOCATE(tmp_block(ibfn,ibfn))
             CALL cp_fm_get_submatrix(fm_S, real_atomblock, icount+1, &
                                  icount+1, ibfn, ibfn)
-            IF(iw>0) WRITE(iw,*) "No. of spherical basis fns is ", ibfn, &
-               "for atom kind", ikind, "atom name  ", qs_kind_set(ikind)%name
+            !IF(iw>0) WRITE(iw,*) "No. of spherical basis fns is ", ibfn, &
+            !   "for atom kind", ikind, "atom name  ", qs_kind_set(ikind)%name
             IF(if_debug) THEN
                 CALL write_real_2dmatrix_to(real_atomblock, 124, "Atom block")
             END IF
@@ -1323,7 +1325,26 @@ CONTAINS
          IF(if_uno) THEN
            CALL get_mo_set(mos(1)%mo_set, nmo=norba)
            CALL get_mo_set(mos(2)%mo_set, nmo=norbb)
-           WRITE(177,*) "norba, norbb", norba, norbb
+           
+           IF(iw>0) THEN
+             WRITE(iw,*) " "
+             WRITE(iw,*) "----------------------------"
+             WRITE(iw,*) "           UNO              "
+             WRITE(iw,*) "           ---              "
+             WRITE(iw,*) "                            "
+             WRITE(iw,*) "# of alpha orbs = ", norba
+             WRITE(iw,*) "# of beta orbs  = ", norbb
+             ! If alpha orbs has the excess electrons then to get a better
+             ! picture exclude the common obritals and do moa for extra orb.
+             ! For example, if alpha=10, beta=9, option NOMOAA=1..9 would
+             ! exclude the first nine 
+             WRITE(iw,*) "Excess alpha orbs are "
+             DO ii = 1, norba-norbb
+                WRITE(iw,*) "      Orb.  # ", norbb + (norba - norbb)
+             END DO
+             WRITE(iw,*) "----------------------------"
+             WRITE(iw,*) " "
+           END IF
            !
            CALL cp_fm_struct_create(fmstruct=fmstruct, &
                                     para_env=para_env, &
@@ -1337,7 +1358,6 @@ CONTAINS
                              matrix_struct=fmstruct, &
                              name="New Vec_alpha")
            CALL cp_fm_struct_release(fmstruct=fmstruct)
-           WRITE(177,*) "Created fm_tp, fm_Va_uno"
            !
            CALL cp_fm_struct_create(fmstruct=fmstruct, &
                                     para_env=para_env, &
@@ -1348,7 +1368,6 @@ CONTAINS
                              matrix_struct=fmstruct, &
                              name="P=Vbt*S*Va")
            CALL cp_fm_struct_release(fmstruct=fmstruct)
-           WRITE(177,*) "Created fm_puno"
            !
            CALL cp_fm_struct_create(fmstruct=fmstruct, &
                                     para_env=para_env, &
@@ -1362,7 +1381,6 @@ CONTAINS
                              matrix_struct=fmstruct, &
                              name="Right singular vectors of Pt*P (Vt)")
            CALL cp_fm_struct_release(fmstruct=fmstruct)
-           WRITE(177,*) "Created fm_ptp, fm_Vt_uno"
            !
            CALL cp_fm_struct_create(fmstruct=fmstruct, &
                                     para_env=para_env, &
@@ -1376,7 +1394,6 @@ CONTAINS
                              matrix_struct=fmstruct, &
                              name="Left singular vectors of P*Pt (U)")
            CALL cp_fm_struct_release(fmstruct=fmstruct)
-           WRITE(177,*) "Created fm_ppt, fm_U_uno"
            !
            CALL cp_fm_struct_create(fmstruct=fmstruct, &
                                     para_env=para_env, &
@@ -1387,7 +1404,6 @@ CONTAINS
                              matrix_struct=fmstruct, &
                              name="New Vec_beta")
            CALL cp_fm_struct_release(fmstruct=fmstruct)
-           WRITE(177,*) "Created fm_Vb_uno"
 
            !fm_S -> Overlap matrix in Sph. Harm. basis
            !mos(1)%mo_set%mo_coeff -> UHF Molec Orbs alpha in Sph. Harm. basis
@@ -1397,7 +1413,6 @@ CONTAINS
                         0.0_dp, fm_tp)
            CALL cp_gemm('T', 'N', norbb, norba, nsgf, 1.0_dp, mos(2)%mo_set%mo_coeff, &
                         fm_tp, 0.0_dp, fm_puno)
-           WRITE(177,*) "P=Vbt*S*Va done"
 
            ALLOCATE(P_uno(norbb, norba)) 
            ALLOCATE(U_uno(SIZE(P_uno,1),SIZE(P_uno,1)))
@@ -1417,35 +1432,32 @@ CONTAINS
      
            CALL cp_fm_set_submatrix(fm_Vt_uno, Vt_uno, 1, 1, norba, norba)
            CALL cp_gemm('N', 'T', nsgf, norba, norba, 1.0_dp, mos(1)%mo_set%mo_coeff, fm_Vt_uno, 0.0_dp, fm_Va_uno)
-           WRITE(177,*) "fm_Va_uno calculated"
 
            CALL cp_fm_set_submatrix(fm_U_uno, U_uno, 1, 1, norbb, norbb)
            CALL cp_gemm('N', 'N', nsgf, norbb, norbb, 1.0_dp, mos(2)%mo_set%mo_coeff, fm_U_uno, 0.0_dp, fm_Vb_uno)
-           WRITE(177,*) "fm_Vb_uno calculated"
            
            ! diagonality check Vbt*S*Va
-           IF(.TRUE.) THEN
-             ALLOCATE(puno_diag(norba))
-             CALL cp_fm_set_all(matrix=fm_tp, alpha=0.0_dp)
-             CALL cp_fm_set_all(matrix=fm_puno, alpha=0.0_dp)
-             CALL cp_gemm('N', 'N', nsgf, norba, nsgf, 1.0_dp, fm_S, fm_Va_uno, 0.0_dp, fm_tp)
-             CALL cp_gemm('T', 'N', norbb, norba, nsgf, 1.0_dp, fm_Vb_uno, fm_tp, 0.0_dp, fm_puno)
-             IF(iw>0) WRITE(iw,*) "VECa before UNO"
-             !CALL cp_fm_write_formatted(mos(1)%mo_set%mo_coeff, iw, &
-             !      "VECa before UNO transformation (alpha orbs)")
-             !CALL cp_fm_write_formatted(mos(2)%mo_set%mo_coeff, iw, &
-             !      "VECa before UNO transformation (beta orbs)")
-             IF(iw>0) WRITE(iw,*) "Diagonality check after UNO"
-             !IF(iw>0) CALL write_real_1dmatrix_to(diag_uno, iw, "Diag mat of SVD(P)")
-             !CALL cp_fm_write_formatted(fm_Vt_uno, iw, "U(a)^T Molec orbs for transforming VECa")
-             !CALL cp_fm_write_formatted(fm_U_uno, iw, "V(b) Molec orbs for transforming VECb")
-             !CALL cp_fm_write_formatted(fm_puno, iw, "Diagonality check: Vbt*S*Va after UNO transformation") 
-             CALL cp_fm_get_diag(fm_puno, puno_diag)
-             WRITE(1244,*) "FRAGMENT, ifrg: ", ifrg
-             CALL write_real_1dmatrix_to(puno_diag, 1244, "diag of P_hat = Vbt_hat*S*Va_hat after UNO transformation")
-             !CALL cp_fm_write_formatted(fm_Va_uno, iw, "Va (VECa) after UNO transformation")
-             !CALL cp_fm_write_formatted(fm_Vb_uno, iw, "Vb (VECb) after UNO transformation")
-           END IF
+           ALLOCATE(puno_diag(norba))
+           CALL cp_fm_set_all(matrix=fm_tp, alpha=0.0_dp)
+           CALL cp_fm_set_all(matrix=fm_puno, alpha=0.0_dp)
+           CALL cp_gemm('N', 'N', nsgf, norba, nsgf, 1.0_dp, fm_S, fm_Va_uno, 0.0_dp, fm_tp)
+           CALL cp_gemm('T', 'N', norbb, norba, nsgf, 1.0_dp, fm_Vb_uno, fm_tp, 0.0_dp, fm_puno)
+           !IF(iw>0) WRITE(iw,*) "VECa before UNO"
+           !CALL cp_fm_write_formatted(mos(1)%mo_set%mo_coeff, iw, &
+           !      "VECa before UNO transformation (alpha orbs)")
+           !CALL cp_fm_write_formatted(mos(2)%mo_set%mo_coeff, iw, &
+           !      "VECa before UNO transformation (beta orbs)")
+           IF(iw>0) WRITE(iw,*) "Diagonality check after UNO (P = Vbt*S*Va) for fragment ", ifrg
+           IF(iw>0) WRITE(iw,*) "Note: P is of size (beta_orbs, alpha_orbs) and", &
+            " if alpha > beta then last column should be essentially zero since it doesn't", &
+            " have any overlap with any beta, so diagonal element would be zero for excess orbs"
+           CALL cp_fm_get_diag(fm_puno, puno_diag)
+           IF(iw>0) WRITE(iw,*) "     Orb. #      diagonal element"
+           DO ii=1,SIZE(puno_diag)
+              IF(iw>0) WRITE(iw,*) ii, " ", puno_diag(ii)
+           END DO
+           !CALL cp_fm_write_formatted(fm_Va_uno, iw, "Va (VECa) after UNO transformation")
+           !CALL cp_fm_write_formatted(fm_Vb_uno, iw, "Vb (VECb) after UNO transformation")
 
 
            CALL cp_fm_release(fm_tp)
@@ -1454,7 +1466,7 @@ CONTAINS
            CALL cp_fm_release(fm_puno)
            CALL cp_fm_release(fm_Vt_uno)
            CALL cp_fm_release(fm_U_uno)
-           DEALLOCATE(diag_uno, P_uno, U_uno, Vt_uno)
+           DEALLOCATE(diag_uno, P_uno, U_uno, Vt_uno, puno_diag)
          END IF
          
          ! Calling orbmoa_frg routine to do MOA analysis
@@ -1462,7 +1474,6 @@ CONTAINS
          mo_print_sec => section_vals_get_subs_vals(qs_env%input, "PROPERTIES%MOA")
          DO ispin=1,nspin
             IF(iw>0) THEN
-                WRITE(iw,*) " ----- now ... the analysis -----"
                 WRITE(iw,*) " -MOA- analysis for -fragment- =", ifrg
                 WRITE(iw,*) " -------------------------------"
                 WRITE(iw,*) "---------------------"
@@ -1471,7 +1482,6 @@ CONTAINS
                 WRITE(iw,*) "---------------------"
             END IF
             CALL get_mo_set(mos(ispin)%mo_set, nmo=nmo)
-            WRITE(144,*) "nmo is ", nmo
             !     -T2, TI2-  to     Atom Ortho Sph. Harm.
             !     -T3, TI3-  to     Frag Ortho Atom Ortho Sph. Harm.
             !     -T4, TI4-  to     Molec Ortho Frag Ortho Atom Ortho Sph. Harm.
@@ -1497,12 +1507,13 @@ CONTAINS
                         nomoa = nomoab
                 END IF
             END IF
-            WRITE(177,*) "ifrg, ispin in moax_frg", ifrg, ispin
+
+            ! for debug purpose IF(ispin.EQ.1) nomoa(541) = 0
             IF(if_uno) THEN
                 IF(ispin .EQ. 1) THEN
                   CALL orbmoa_frg(fm_S_frg,fm_Va_uno, fm_T2, fm_TI2, &
                             fm_T3, fm_TI3, fm_T4, fm_TI4, &
-                            popfrg, chgfrg, spnfrg, bf_frg, z_frg1, norba-norbb, nsgf,&
+                            popfrg, chgfrg, spnfrg, bf_frg, z_frg1, norba, nsgf,&
                             nspin, ispin, ifrg, iw, nomoa, para_env, blacs_env,&
                             mo_print_sec, qs_env, if_debug, if_uno)
                 ELSE IF (ispin .EQ. 2) THEN
@@ -1513,7 +1524,7 @@ CONTAINS
                             mo_print_sec, qs_env, if_debug, if_uno)
                 END IF
             ELSE
-              CALL orbmoa_frg(fm_S_frg, mos(ispin)%mo_set%mo_coeff, fm_T2, fm_TI2, &
+                CALL orbmoa_frg(fm_S_frg, mos(ispin)%mo_set%mo_coeff, fm_T2, fm_TI2, &
                             fm_T3, fm_TI3, fm_T4, fm_TI4, &
                             popfrg, chgfrg, spnfrg, bf_frg, z_frg1, nmo, nsgf,&
                             nspin, ispin, ifrg, iw, nomoa, para_env, blacs_env, &
@@ -1563,16 +1574,16 @@ CONTAINS
 !>      01.2020 created
 !> \author Pavan Behara
 ! **************************************************************************************************
-   SUBROUTINE orbmoa_frg(fm_S, fm_Vec, fm_T2, fm_TI2, fm_T3, fm_TI3, fm_T4, fm_TI4, &
+   SUBROUTINE orbmoa_frg(fm_S, fm_V, fm_T2, fm_TI2, fm_T3, fm_TI3, fm_T4, fm_TI4, &
                      popfrg, chgfrg, spnfrg, bf_frg, z_frg,  &
                      norb, nsgf, nspin, ispin, ifrg, iw, nomoa, &
                      para_env, blacs_env, mo_print_sec, qs_env, if_debug, if_uno)
-      TYPE(cp_fm_type), POINTER                           :: fm_S, fm_Vec, fm_T2, fm_TI2, fm_T3, fm_TI3, &
+      TYPE(cp_fm_type), POINTER                           :: fm_S, fm_V, fm_T2, fm_TI2, fm_T3, fm_TI3, &
                                                              fm_T4, fm_TI4
       REAL(KIND=dp), DIMENSION(:), POINTER, INTENT(INOUT) :: popfrg, chgfrg, spnfrg
       LOGICAL, DIMENSION(:), POINTER                      :: bf_frg
       REAL(KIND=dp)                                       :: z_frg
-      INTEGER, INTENT(IN)                                 :: norb, nsgf, nspin, ispin, ifrg, iw
+      INTEGER                                  :: norb, nsgf, nspin, ispin, ifrg, iw
       INTEGER, DIMENSION(:), ALLOCATABLE                  :: nomoa
       TYPE(cp_para_env_type), POINTER                     :: para_env
       TYPE(cp_blacs_env_type), POINTER                    :: blacs_env
@@ -1586,8 +1597,7 @@ CONTAINS
                                                              occ, imoa, nbf, info, n_alfa, nuno
       TYPE(cp_fm_struct_type), POINTER                    :: fmstruct
       TYPE(cp_fm_type), POINTER                           :: fm_P, fm_PP, fm_V2, fm_tmp, fm_U_mat, &
-                                                             fm_rt1, fm_rt2, moa_coeff, fm_U_sph_harm_bas, &
-                                                             fm_V
+                                                             fm_rt1, fm_rt2, moa_coeff, fm_U_sph_harm_bas
       REAL(KIND=dp)                                       :: dum, pop_i, norm_of_diag
       REAL(KIND=dp), DIMENSION(:, :), POINTER             :: PP, U_mat, U_mat_truncated
       REAL(KIND=dp), DIMENSION(:), POINTER                :: diag_mat
@@ -1610,7 +1620,6 @@ CONTAINS
       NULLIFY (U_mat)
       NULLIFY (U_mat_truncated)
       NULLIFY (diag_mat)
-      NULLIFY (fm_V)
       NULLIFY (fm_V2)
 
       IF(nspin .EQ. 1) THEN
@@ -1661,51 +1670,19 @@ CONTAINS
                         matrix_struct=fmstruct, &
                         name="TEMP MATRIX2 of size nsgf by nsgf")
       CALL cp_fm_struct_release(fmstruct=fmstruct)
-
-
-      ! UNOcase for additional alpha only, (alpha-beta) no. of orbitals would be present
+      
       IF(if_uno) THEN
-        CALL cp_fm_get_info(fm_Vec, ncol_global=n_alfa)
-        nuno = n_alfa - norb
-        IF(norb .EQ. 0) CALL cp_warn(__LOCATION__, &
-                              "UNO is irrelevant: nmo_alfa, nmo_beta are equal")
-        WRITE(177,*) "ifrg, ispin, n_alfa, norb, nuno", ifrg, ispin, n_alfa, norb, nuno
-        FLUSH(177)
-        
-        CALL cp_fm_struct_create(fmstruct=fmstruct, &
-                           para_env=para_env, &
-                           context=blacs_env, &
-                           nrow_global=nsgf, &
-                           ncol_global=norb)
-  
-        CALL cp_fm_create(matrix=fm_V, &
-                          matrix_struct=fmstruct, &
-                          name="fm_V UNO orbs")
-        CALL cp_fm_set_all(matrix=fm_V, alpha=0.0_dp)
-        CALL cp_fm_struct_release(fmstruct=fmstruct)
-
-        ! Syntax: cp_fm_to_fm_submat(msource, mtarget, nrow, ncol, s_firstrow,
-        ! s_firstcol, t_firstrow,
-        ! t_firstcol)
-        IF(nuno .NE. 0) CALL cp_fm_to_fm_submat(fm_Vec, fm_V, nsgf, norb, 1, nuno+1, 1, 1)
-        IF(iw>0) WRITE(iw,*) "------------------------------------"
-        IF(iw>0) WRITE(iw,*) "  -MOA- analysis of -UNO- orbitals  "
-        IF(iw>0) WRITE(iw,*) "------------------------------------"
-      ELSE
-        CALL cp_fm_create(matrix=fm_V, &
-                          matrix_struct=fm_Vec%matrix_struct, &
-                          name="Working V MATRIX")
-        CALL cp_fm_to_fm(fm_Vec, fm_V)
+           IF(iw>0) WRITE(iw,*) "------------------------------------"
+           IF(iw>0) WRITE(iw,*) "  -MOA- analysis of -UNO- orbitals  "
+           IF(iw>0) WRITE(iw,*) "------------------------------------"
       END IF
+
       !IF(ispin .EQ. 1) CALL cp_fm_write_formatted(fm_V, iw, "Va (VECa) before doing ORBMOA_FRG")
       !IF(ispin .EQ. 1) CALL cp_fm_write_formatted(fm_V, iw, "Vb (VECb) before doing ORBMOA_FRG")
       CALL cp_fm_create(matrix=fm_V2, &
                         matrix_struct=fm_V%matrix_struct, &
                         name="Working V MATRIX")
 
-      IF(if_debug) THEN
-        CALL cp_fm_write_formatted(fm_V, iw, "V in Sph. Harm. basis")
-      END IF
       ! Multiplying orbitals with TI2 on the left  TI2*V to get V in  Atom Ortho Sph. Harmonic Basis
       ! placing in a temp matrix since output should not overlap with the inputs
       ! in gemm routine (matrix_c should not overlap matrix_a, matrix_b where c = a*b)
@@ -1734,8 +1711,8 @@ CONTAINS
         CALL cp_fm_write_formatted(fm_S, iw, "-S- in Molec Ortho Frag Ortho Atom Ortho Sph. Harm. basis")
       END IF
 
-      IF(iw>0) WRITE(iw,*) " ----- now ... the analysis -----"
-      IF(iw>0) WRITE(iw,*) " -MOA- analysis for -fragment- =", ifrg 
+      IF(iw>0) WRITE(iw,*) " -------------------------------"
+      IF(iw>0) WRITE(iw,*) " -MOA- analysis for -fragment- =", ifrg, " and spin ", ispin 
       IF(iw>0) WRITE(iw,*) " -------------------------------"
 
       ! ----- calculate P ----
@@ -1792,9 +1769,12 @@ CONTAINS
          END DO
       END DO
 
-      IF(if_debug) THEN
-        CALL write_real_2dmatrix_to(PP, 124, "P*P(t) for fragment and non-excluded Molec Orbs")
-      END IF  
+      !IF(debuggg) THEN
+      !  ALLOCATE(ppsubmat(10, 10))
+      !  ppsubmat = PP(391:400, 391:400)
+      !  CALL write_real_2dmatrix_to(ppsubmat, 124, "P*P(t) for fragment and non-excluded Molec Orbs")
+      !  DEALLOCATE(ppsubmat)
+      !END IF  
 
       CALL cp_fm_set_submatrix(fm_PP, PP, 1, 1, nsgf, nsgf)
 
@@ -1902,7 +1882,7 @@ CONTAINS
       CALL cp_gemm('N', 'N', nsgf, nsgf, nsgf, 1.0_dp, fm_rt2, fm_U_mat, 0.0_dp, fm_U_sph_harm_bas)
       
 
-      IF(iw>0) WRITE(iw,*) "nbf value is ", nbf
+      !IF(iw>0) WRITE(iw,*) "nbf value is ", nbf
       CALL cp_fm_get_submatrix(fm_U_sph_harm_bas, U_mat_truncated, 1, 1, nsgf, nbf)
       !IF(iw>0) CALL write_real_2dmatrix_to(U_mat_truncated, iw, "U_mat_truncated") 
       ! Now U_mat is in Sph. Harm. basis
@@ -1930,7 +1910,6 @@ CONTAINS
       CALL cp_fm_release(fm_rt2)
       CALL cp_fm_release(moa_coeff)
       CALL cp_fm_release(fm_U_sph_harm_bas)
-      CALL cp_fm_release(fm_V)
       CALL cp_fm_release(fm_V2)
 
       CALL timestop(handle)
