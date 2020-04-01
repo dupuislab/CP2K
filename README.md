@@ -43,8 +43,11 @@ Testcases are in the folder MOA_CP2K. Input section is as follows:<br />
                  LFRG 1 2           ! Length of fragments 
                  IFRG 1 2 3         ! Atoms in fragments by indices 
                  NOMOA 1 1 1 0 0    ! Exclude MOs if index is non-zero
-                 NOMOAA 1 2 3 0 0   ! Exclude alpha MOs if index is non-zero
-                 NOMOAB 1 1 1 0 0   ! Exclude beta MOs if index is non-zero
+                 NOMOAA 1..3 0 0    ! Exclude alpha MOs if index is non-zero
+                 NOMOAB 1..2 0 4..5 ! Exclude beta MOs if index is non-zero
+                 IFUNO .FALSE.      ! To do COT on alpha and beta within the system
+                 REF_STATE_WFN_FILE <Filename> ! To use a reference state. COT will 
+					       ! be done on respective alphas and betas
                  &MO_CUBES          ! build wfn from MOA orbitals and print individual cubes                             
                          STRIDE 2 2 2                  ! The stride (X,Y,Z) used to write the cube file
                          MO_LIST 1 2 3               ! List of MOs to print as cube
