@@ -185,6 +185,28 @@ CONTAINS
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
 
+      CALL keyword_create(keyword, name="JACOBI_P", &
+                          description="To use Jacobi diagonalization for calculating P", &
+                          n_var=1, type_of_var=logical_t, &
+                          default_l_val=.FALSE., lone_keyword_l_val=.TRUE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, name="DEBUG_PRINT", &
+                          description="To print most of the matrices and eigenvalues, eigen vectors", &
+                          n_var=1, type_of_var=logical_t, &
+                          default_l_val=.FALSE., lone_keyword_l_val=.TRUE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, name="REF_STATE_WFN_FILE", &
+                          description="Name of the wave function file for reference state, may include a path.", &
+                          usage="REF_STATE_WFN_FILE <FILENAME>", &
+                          default_lc_val="IGNORE_THIS:NOT_USING_ANY_REFERENCE", type_of_var=lchar_t)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+
       CALL keyword_create(keyword, name="NOMOA", &
                           description="Exclude molecular orbitals"// &
                           "Any non-zero number will exclude that "// &
@@ -211,6 +233,14 @@ CONTAINS
                           n_var=-1, type_of_var=integer_t, default_i_vals=(/-100000/), repeats=.FALSE.)
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, name="VEC_TOL", &
+                          description="Print orbitals (eigen vector values)"//&
+                                      "greater than this number in fragments", &
+                          usage="VEC_TOL 0.01", default_r_val=1.e-2_dp)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
 
       ! Subsection for Saving MOs to CUBE files
       CALL cp_print_key_section_create(print_key, 'MO_CUBES', &
