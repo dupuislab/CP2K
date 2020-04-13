@@ -1,6 +1,8 @@
 # ET-CP2K 
 ### VAB Calculation
 
+NEW UPDATE: VAB code added to newer version of CP2K-7.1. 
+
 Code addition to a cloned verison of CP2K-6.1 to calculate electron coupling matrix element VAB for molecular and periodic systems. <sup>[1]</sup> Calculation method is based on Farazdel & Dupuis work. <sup>[2]<sup> 
 
 # <img src="https://raw.githubusercontent.com/dupuislab/CP2K/master/ET_CP2K/images/Figure3.png" height=150>
