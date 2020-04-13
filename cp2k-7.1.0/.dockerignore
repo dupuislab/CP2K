@@ -1,0 +1,6 @@
+exe
+lib
+obj
+regtesting
+tools/toolchain
+.git*
