@@ -1,0 +1,160 @@
+@SET PROJECT  p_bvo_
+@SET RESFILE  p_bvo_
+@SET XYZ   ./opt0.xyz
+@SET RESTART 0 
+@SET RUNTYPE ENERGY
+@SET EPSSCF 1.0E-05
+
+
+&FORCE_EVAL
+  METHOD QS
+  &DFT  
+     UKS
+     BASIS_SET_FILE_NAME  /projects/academic/mdupuis2/pavan/BASIS_SETS/GTH_BASIS_SETS_5-12-10
+     POTENTIAL_FILE_NAME  /projects/academic/mdupuis2/pavan/POTENTIALS/GTH_POTENTIALS_5-12-10
+     WFN_RESTART_FILE_NAME ./p_bvo_-RESTART.wfn
+     CHARGE -1
+     MULTIPLICITY 2
+     PLUS_U_METHOD MULLIKEN
+    &MGRID
+      CUTOFF 650
+      NGRIDS   10
+      REL_CUTOFF   60
+    &END MGRID
+    &QS
+       EPS_DEFAULT 1.0E-12
+       METHOD GPW
+       MAP_CONSISTENT
+       EXTRAPOLATION ASPC
+       EPS_PGF_ORB 1E-12
+    &END QS
+     &SCF
+       MAX_SCF    500
+       EPS_SCF    ${EPSSCF}
+       EPS_DIIS 0.5
+       SCF_GUESS  RESTART
+       &MIXING  T
+               METHOD BROYDEN_MIXING
+       &END MIXING
+       &DIAGONALIZATION
+               ALGORITHM STANDARD
+       &END
+       &OUTER_SCF
+         MAX_SCF 500
+         EPS_SCF ${EPSSCF}
+       &END
+       &PRINT
+         &RESTART
+           &EACH
+               QS_SCF 100
+           &END
+           ADD_LAST NUMERIC
+         &END
+       &END
+
+     &END SCF
+
+     &XC
+        &XC_FUNCTIONAL PBE
+        &END XC_FUNCTIONAL
+     &END XC
+   &PRINT
+    &MULLIKEN ON
+    &END
+    &LOWDIN OFF
+    &END
+    &XRAY_DIFFRACTION_SPECTRUM OFF
+    &END
+    &PDOS OFF
+      FILENAME PDOS-TMAA
+      NLUMO -1
+    &END PDOS
+    &E_DENSITY_CUBE OFF
+    &END
+    &MO_CUBES                 ! Controls which MOs are written to cube-files.
+      WRITE_CUBE FALSE
+    &END MO_CUBES
+    &TOT_DENSITY_CUBE OFF
+    &END TOT_DENSITY_CUBE
+   &END PRINT
+  &END DFT
+
+  &SUBSYS
+    &CELL
+   A    15.5867996216         0.0000000000         0.0000000000
+   B    -0.1021422690        15.2801590240         0.0000000000
+   C     0.0000000000         0.0000000000        11.7045001984
+    &END CELL
+    &TOPOLOGY
+      CONNECTIVITY OFF
+      COORD_FILE_NAME ${XYZ}
+      COORDINATE      xyz
+    &END TOPOLOGY
+   &KIND Bi
+      BASIS_SET SZV-MOLOPT-SR-GTH-q5
+      POTENTIAL GTH-PBE-q5
+   &END KIND
+
+   &KIND V
+      ELEMENT V
+      BASIS_SET SZV-MOLOPT-SR-GTH
+      POTENTIAL GTH-PBE-q13
+      &DFT_PLUS_U
+         L 2
+         U_MINUS_J 0.2205  #6 eV, conv factor = 27.2107
+      &END DFT_PLUS_U
+    &END KIND
+   &KIND V_ex
+      ELEMENT V
+      &BS
+        &ALPHA
+           L 2
+           N 3
+           NEL 1
+        &END
+        &BETA
+           L 2
+           N 3
+           NEL 1
+        &END
+      &END
+      BASIS_SET SZV-MOLOPT-SR-GTH
+      POTENTIAL GTH-PBE-q13
+      &DFT_PLUS_U
+         L 2
+         U_MINUS_J 0.2205  #6 eV, conv factor = 27.2107
+      &END DFT_PLUS_U
+    &END KIND
+
+    &KIND O
+      BASIS_SET SZV-MOLOPT-GTH
+      POTENTIAL GTH-PBE-q6
+    &END KIND
+  &END SUBSYS
+  &PROPERTIES
+          &MOA
+                  NFRG 4
+                  LFRG 1 1 4 4
+                  IFRG 193 212 58 112 149 166 158 77 50 122 # (V:193 O:58,112,149,166) (V:212 O:158 77 50 122)
+                  IFUNO .TRUE.
+                  VEC_TOL 0.01
+          &END
+  &END
+
+  STRESS_TENSOR ANALYTICAL
+&END FORCE_EVAL
+
+&GLOBAL
+  PROJECT ${PROJECT}
+  RUN_TYPE ${RUNTYPE}
+  PRINT_LEVEL MEDIUM
+  EXTENDED_FFT_LENGTHS 
+  FLUSH_SHOULD_FLUSH T   
+&END GLOBAL
+
+@if ${RESTART} == 1
+&EXT_RESTART
+  RESTART_FILE_NAME ${PROJECT}-1.restart
+  RESTART_DEFAULT T
+&END EXT_RESTART
+@endif

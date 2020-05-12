@@ -1,0 +1,657 @@
+SLURM_JOBID=2678777
+SLURM_JOB_NODELIST=cpn-u24-[27-30]
+SLURM_NNODES=4
+SLURMTMPDIR=/scratch/2678777
+working directory = /projects/academic/mdupuis2/pavan/MOA/7.TiO2_pbe_plus_U10/ti_atoms/lowdin_at_mull_opt_geo
+ Intel-MPI is in your path. This is adequate for compiling and running most
+codes. Source the
+/util/academic/intel/17.0/compilers_and_libraries_2017/linux/mpi/intel64/bin/mpivars.sh
+file for more features. 
+ The MKL Libraries are in your library path. This is adequate for compiling and
+running most codes. Source $MKL/bin/mklvars.sh" for more features. 
+/var/spool/slurmd/job2678777/slurm_script: line 23: ulimit: core file size: cannot modify limit: Operation not permitted
+NPROCS=128
+Launching the job
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8a80300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7ebc300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=9186300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8e19300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=939e300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8c5f300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7ddf300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8691300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8abd300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=769c300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8048300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7be2300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8cf0300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7a0d300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=899c300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8801300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7b50300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8798300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=76af300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8913300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=75f4300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8554300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7ee1300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=87fb300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=791f300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=818a300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8cd9300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8199300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8fed300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=892d300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8b4e300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=938c300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=83f6300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7d7d300
+[0] MPI startup(): Multi-threaded optimized library
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7bf3300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8866300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=80b5300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7777300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7e61300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=81fe300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=754c300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=886d300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=9220300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=93b5300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8324300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8053300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8cf2300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7557300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=88c3300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=80d3300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=78ed300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8406300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=839e300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7fd0300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8bd6300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7f9f300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8cd8300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=84d5300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=94d5300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8f37300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8363300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=907e300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=793a300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8777300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7923300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=91fe300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7922300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7a0b300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=858f300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=78da300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7b64300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=80c8300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=9345300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=782d300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8b06300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=79ee300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=882d300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=9161300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8711300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7f31300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=82a0300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8030300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=863f300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=76c0300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8d9e300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8f1f300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=86aa300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8ef7300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7cfc300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=78d0300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7a92300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=877f300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8a5c300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=808d300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=921c300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7beb300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=946c300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7bcb300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7734300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=945c300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=928e300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=883c300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7a66300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7a98300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=850b300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=78d8300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7e80300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=86d3300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7e2f300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8453300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=77a6300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=782c300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7d41300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=86c0300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8b02300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=932c300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=74fb300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7888300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8f88300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8452300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8fea300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8b15300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8e88300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=7888300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=8879300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=89a4300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=89a8300
+[-1] MPI startup(): Imported environment partly inaccesible. Map=0 Info=76ae300
+[2] MPI startup(): shm and tmi data transfer modes
+[1] MPI startup(): shm and tmi data transfer modes
+[4] MPI startup(): shm and tmi data transfer modes
+[5] MPI startup(): shm and tmi data transfer modes
+[3] MPI startup(): shm and tmi data transfer modes
+[97] MPI startup(): shm and tmi data transfer modes
+[98] MPI startup(): shm and tmi data transfer modes
+[65] MPI startup(): shm and tmi data transfer modes
+[33] MPI startup(): shm and tmi data transfer modes
+[34] MPI startup(): shm and tmi data transfer modes
+[6] MPI startup(): shm and tmi data transfer modes
+[35] MPI startup(): shm and tmi data transfer modes
+[66] MPI startup(): shm and tmi data transfer modes
+[8] MPI startup(): shm and tmi data transfer modes
+[36] MPI startup(): shm and tmi data transfer modes
+[68] MPI startup(): shm and tmi data transfer modes
+[99] MPI startup(): shm and tmi data transfer modes
+[100] MPI startup(): shm and tmi data transfer modes
+[67] MPI startup(): shm and tmi data transfer modes
+[101] MPI startup(): shm and tmi data transfer modes
+[37] MPI startup(): shm and tmi data transfer modes
+[38] MPI startup(): shm and tmi data transfer modes
+[39] MPI startup(): shm and tmi data transfer modes
+[7] MPI startup(): shm and tmi data transfer modes
+[102] MPI startup(): shm and tmi data transfer modes
+[70] MPI startup(): shm and tmi data transfer modes
+[69] MPI startup(): shm and tmi data transfer modes
+[103] MPI startup(): shm and tmi data transfer modes
+[104] MPI startup(): shm and tmi data transfer modes
+[71] MPI startup(): shm and tmi data transfer modes
+[40] MPI startup(): shm and tmi data transfer modes
+[72] MPI startup(): shm and tmi data transfer modes
+[41] MPI startup(): shm and tmi data transfer modes
+[11] MPI startup(): shm and tmi data transfer modes
+[105] MPI startup(): shm and tmi data transfer modes
+[9] MPI startup(): shm and tmi data transfer modes
+[106] MPI startup(): shm and tmi data transfer modes
+[73] MPI startup(): shm and tmi data transfer modes
+[42] MPI startup(): shm and tmi data transfer modes
+[12] MPI startup(): shm and tmi data transfer modes
+[10] MPI startup(): shm and tmi data transfer modes
+[43] MPI startup(): shm and tmi data transfer modes
+[74] MPI startup(): shm and tmi data transfer modes
+[75] MPI startup(): shm and tmi data transfer modes
+[107] MPI startup(): shm and tmi data transfer modes
+[44] MPI startup(): shm and tmi data transfer modes
+[15] MPI startup(): shm and tmi data transfer modes
+[76] MPI startup(): shm and tmi data transfer modes
+[45] MPI startup(): shm and tmi data transfer modes
+[108] MPI startup(): shm and tmi data transfer modes
+[109] MPI startup(): shm and tmi data transfer modes
+[14] MPI startup(): shm and tmi data transfer modes
+[13] MPI startup(): shm and tmi data transfer modes
+[77] MPI startup(): shm and tmi data transfer modes
+[78] MPI startup(): shm and tmi data transfer modes
+[46] MPI startup(): shm and tmi data transfer modes
+[110] MPI startup(): shm and tmi data transfer modes
+[17] MPI startup(): shm and tmi data transfer modes
+[48] MPI startup(): shm and tmi data transfer modes
+[18] MPI startup(): shm and tmi data transfer modes
+[16] MPI startup(): shm and tmi data transfer modes
+[47] MPI startup(): shm and tmi data transfer modes
+[19] MPI startup(): shm and tmi data transfer modes
+[81] MPI startup(): shm and tmi data transfer modes
+[0] MPI startup(): shm and tmi data transfer modes
+[111] MPI startup(): shm and tmi data transfer modes
+[112] MPI startup(): shm and tmi data transfer modes
+[79] MPI startup(): shm and tmi data transfer modes
+[49] MPI startup(): shm and tmi data transfer modes
+[20] MPI startup(): shm and tmi data transfer modes
+[80] MPI startup(): shm and tmi data transfer modes
+[50] MPI startup(): shm and tmi data transfer modes
+[21] MPI startup(): shm and tmi data transfer modes
+[51] MPI startup(): shm and tmi data transfer modes
+[22] MPI startup(): shm and tmi data transfer modes
+[113] MPI startup(): shm and tmi data transfer modes
+[115] MPI startup(): shm and tmi data transfer modes
+[24] MPI startup(): shm and tmi data transfer modes
+[114] MPI startup(): shm and tmi data transfer modes
+[82] MPI startup(): shm and tmi data transfer modes
+[23] MPI startup(): shm and tmi data transfer modes
+[116] MPI startup(): shm and tmi data transfer modes
+[83] MPI startup(): shm and tmi data transfer modes
+[52] MPI startup(): shm and tmi data transfer modes
+[25] MPI startup(): shm and tmi data transfer modes
+[54] MPI startup(): shm and tmi data transfer modes
+[28] MPI startup(): shm and tmi data transfer modes
+[55] MPI startup(): shm and tmi data transfer modes
+[53] MPI startup(): shm and tmi data transfer modes
+[85] MPI startup(): shm and tmi data transfer modes
+[118] MPI startup(): shm and tmi data transfer modes
+[32] MPI startup(): shm and tmi data transfer modes
+[31] MPI startup(): shm and tmi data transfer modes
+[84] MPI startup(): shm and tmi data transfer modes
+[26] MPI startup(): shm and tmi data transfer modes
+[117] MPI startup(): shm and tmi data transfer modes
+[27] MPI startup(): shm and tmi data transfer modes
+[29] MPI startup(): shm and tmi data transfer modes
+[30] MPI startup(): shm and tmi data transfer modes
+[119] MPI startup(): shm and tmi data transfer modes
+[64] MPI startup(): shm and tmi data transfer modes
+[96] MPI startup(): shm and tmi data transfer modes
+[57] MPI startup(): shm and tmi data transfer modes
+[56] MPI startup(): shm and tmi data transfer modes
+[86] MPI startup(): shm and tmi data transfer modes
+[87] MPI startup(): shm and tmi data transfer modes
+[120] MPI startup(): shm and tmi data transfer modes
+[58] MPI startup(): shm and tmi data transfer modes
+[123] MPI startup(): shm and tmi data transfer modes
+[88] MPI startup(): shm and tmi data transfer modes
+[121] MPI startup(): shm and tmi data transfer modes
+[59] MPI startup(): shm and tmi data transfer modes
+[61] MPI startup(): shm and tmi data transfer modes
+[60] MPI startup(): shm and tmi data transfer modes
+[89] MPI startup(): shm and tmi data transfer modes
+[90] MPI startup(): shm and tmi data transfer modes
+[91] MPI startup(): shm and tmi data transfer modes
+[126] MPI startup(): shm and tmi data transfer modes
+[62] MPI startup(): shm and tmi data transfer modes
+[63] MPI startup(): shm and tmi data transfer modes
+[124] MPI startup(): shm and tmi data transfer modes
+[92] MPI startup(): shm and tmi data transfer modes
+[93] MPI startup(): shm and tmi data transfer modes
+[125] MPI startup(): shm and tmi data transfer modes
+[127] MPI startup(): shm and tmi data transfer modes
+[94] MPI startup(): shm and tmi data transfer modes
+[95] MPI startup(): shm and tmi data transfer modes
+[122] MPI startup(): shm and tmi data transfer modes
+[0] MPI startup(): Rank    Pid      Node name                        Pin cpu
+[0] MPI startup(): 0       236414   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 1       236415   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 2       236416   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 3       236417   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 4       236418   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 5       236419   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 6       236420   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 7       236421   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 8       236422   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 9       236423   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 10      236424   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 11      236425   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 12      236426   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 13      236427   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 14      236428   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 15      236429   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 16      236430   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 17      236431   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 18      236432   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 19      236433   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 20      236434   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 21      236435   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 22      236436   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 23      236437   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 24      236438   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 25      236439   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 26      236440   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 27      236441   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 28      236442   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 29      236443   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 30      236444   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 31      236445   cpn-u24-27.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 32      191856   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 33      191857   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 34      191858   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 35      191859   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 36      191860   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 37      191861   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 38      191862   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 39      191863   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 40      191864   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 41      191865   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 42      191866   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 43      191867   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 44      191868   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 45      191869   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 46      191870   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 47      191871   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 48      191872   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 49      191873   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 50      191874   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 51      191875   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 52      191876   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 53      191877   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 54      191878   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 55      191879   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 56      191880   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 57      191881   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 58      191882   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 59      191883   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 60      191884   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 61      191885   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 62      191886   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 63      191887   cpn-u24-28.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 64      121767   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 65      121768   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 66      121769   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 67      121770   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 68      121771   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 69      121772   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 70      121773   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 71      121774   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 72      121775   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 73      121776   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 74      121777   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 75      121778   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 76      121779   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 77      121780   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 78      121781   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 79      121782   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 80      121783   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 81      121784   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 82      121785   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 83      121786   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 84      121787   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 85      121788   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 86      121789   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 87      121790   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 88      121791   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 89      121792   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 90      121793   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 91      121794   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 92      121795   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 93      121796   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 94      121797   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 95      121798   cpn-u24-29.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 96      102482   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 97      102483   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 98      102484   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 99      102485   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 100     102486   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 101     102487   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 102     102488   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 103     102489   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 104     102490   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 105     102491   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 106     102492   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 107     102493   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 108     102494   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 109     102495   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 110     102496   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 111     102497   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 112     102498   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 113     102499   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 114     102500   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 115     102501   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 116     102502   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 117     102503   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 118     102504   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 119     102505   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 120     102506   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 121     102507   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 122     102508   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 123     102509   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 124     102510   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 125     102511   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 126     102512   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+[0] MPI startup(): 127     102513   cpn-u24-30.cbls.ccr.buffalo.edu  +1
+ reached end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+ reached end of cp2k_run
+STOP at the end of cp2k_run
+STOP at the end of cp2k_run
+All Done!
